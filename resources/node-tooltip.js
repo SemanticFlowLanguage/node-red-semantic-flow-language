@@ -249,111 +249,18 @@
     throw new Error('Maximum retry attempts reached due to rate limiting')
   }
 
-  async function resyncNodeWithAI(node, direction = 'info-to-logic') {
-    const httpClient = window.axios
-    const currentConfig = extractNodeConfig(node)
-
-    if (!httpClient) {
-      throw new Error('Axios client not available in editor')
+  function registerNodeInRegistry(node) {
+    // Always store functional state when we first see a node
+    if (!window.nodeFunctionalState[node.id]) {
+      storeFunctionalState(node)
     }
 
-    // Mark node as syncing (yellow dot)
-    setNodeSyncStatus(node.id, true)
-
-    try {
-      if (direction === 'info-to-logic') {
-        // Call AI to regenerate node logic based on new info
-        const { data } = await with429Retry(node.id, () => httpClient.post(
-          '/ai/resync-node',
-          {
-            nodeId: node.id,
-            nodeType: node.type,
-            nodeName: node.name,
-            info: node.info,
-            currentConfig
-          },
-          { headers: { 'Content-Type': 'application/json' } }
-        ))
-
-        if (data.success && data.updatedNode) {
-          // Update node with AI-generated config
-          Object.assign(node, data.updatedNode)
-
-          // Update registry with new synced info
-          window.semanticNodeRegistry[node.id] = {
-            info: node.info,
-            lastSynced: Date.now()
-          }
-
-          storeFunctionalState(node)
-
-          // Force UI updates
-          RED.nodes.dirty(true)
-          node.dirty = true
-          RED.view.redraw(true)
-
-          // Update tooltip content
-          updateNodeTooltip(node)
-        } else {
-          throw new Error(data.error || 'Failed to sync node with AI')
-        }
-      } else if (direction === 'logic-to-info') {
-        // Call AI to generate semantic description from logic
-        const { data } = await with429Retry(node.id, () => httpClient.post(
-          '/ai/generate-description',
-          {
-            nodeId: node.id,
-            nodeType: node.type,
-            nodeName: node.name,
-            currentConfig
-          },
-          { headers: { 'Content-Type': 'application/json' } }
-        ))
-
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to generate description')
-        }
-
-        if (!data.name || !data.description) {
-          throw new Error(`AI response missing name or description. Got: ${JSON.stringify(data)}`)
-        }
-
-        // Update node name
-        node.name = data.name
-
-        // Update node info with AI-generated description
-        node.info = data.description
-
-        // Update registry
-        window.semanticNodeRegistry[node.id] = {
-          info: node.info,
-          lastSynced: Date.now()
-        }
-
-        storeFunctionalState(node)
-
-        // Force UI updates
-        RED.nodes.dirty(true)
-        node.dirty = true
-        node.changed = true
-
-        // Trigger Node-RED's internal update
-        RED.events.emit('nodes:change', node)
-
-        // Force canvas redraw
-        RED.view.redraw(true)
-
-        // Update tooltip content
-        updateNodeTooltip(node)
-
-        console.log('[node-tooltip] Description generated successfully:', node.id)
+    // Register in semantic registry if node has info
+    if (node.info && !window.semanticNodeRegistry[node.id]) {
+      window.semanticNodeRegistry[node.id] = {
+        info: node.info,
+        lastSynced: Date.now()
       }
-    } catch (error) {
-      console.error('[node-tooltip] Re-sync failed:', error)
-      RED.notify('Failed to sync node with AI', 'error')
-    } finally {
-      // Remove syncing status (remove yellow dot)
-      setNodeSyncStatus(node.id, false)
     }
   }
 
@@ -380,6 +287,7 @@
 
       // If info changed, trigger AI resync
       if (infoChanged) {
+        // eslint-disable-next-line no-use-before-define
         resyncNodeWithAI(node, 'info-to-logic').catch(error => {
           RED.notify(`Failed to sync node: ${error.message}`, 'error')
         })
@@ -389,21 +297,6 @@
     exitEditMode(content, instance, node, displayText, true)
   }
 
-  function registerNodeInRegistry(node) {
-    // Always store functional state when we first see a node
-    if (!window.nodeFunctionalState[node.id]) {
-      storeFunctionalState(node)
-    }
-
-    // Register in semantic registry if node has info
-    if (node.info && !window.semanticNodeRegistry[node.id]) {
-      window.semanticNodeRegistry[node.id] = {
-        info: node.info,
-        lastSynced: Date.now()
-      }
-    }
-  }
-
   function showEditOverlay(instance, content, rawInfo, node) {
     let overlay = document.getElementById('node-tooltip-overlay')
 
@@ -411,13 +304,6 @@
       overlay = document.createElement('div')
       overlay.id = 'node-tooltip-overlay'
       overlay.className = 'ui-widget-overlay ui-front'
-      overlay.style.position = 'fixed'
-      overlay.style.top = '0'
-      overlay.style.left = '0'
-      overlay.style.right = '0'
-      overlay.style.bottom = '0'
-      overlay.style.zIndex = '10001'
-      overlay.style.cursor = 'pointer'
       document.body.appendChild(overlay)
     }
 
@@ -445,20 +331,6 @@
     closeBtn.className = 'tooltip-close-btn'
     closeBtn.innerHTML = '×'
     closeBtn.title = 'Discard changes (Esc)'
-    closeBtn.style.position = 'absolute'
-    closeBtn.style.top = '4px'
-    closeBtn.style.right = '8px'
-    closeBtn.style.fontSize = '20px'
-    closeBtn.style.width = '24px'
-    closeBtn.style.height = '24px'
-    closeBtn.style.borderRadius = '50%'
-    closeBtn.style.cursor = 'pointer'
-    closeBtn.style.display = 'flex'
-    closeBtn.style.alignItems = 'center'
-    closeBtn.style.justifyContent = 'center'
-    closeBtn.style.lineHeight = '1'
-    closeBtn.style.padding = '0'
-    closeBtn.style.zIndex = '1'
 
     closeBtn.onclick = e => {
       e.preventDefault()
@@ -620,6 +492,114 @@
     })
 
     tippyInstances.set(node.id, instance)
+  }
+
+  async function resyncNodeWithAI(node, direction = 'info-to-logic') {
+    const httpClient = window.axios
+    const currentConfig = extractNodeConfig(node)
+
+    if (!httpClient) {
+      throw new Error('Axios client not available in editor')
+    }
+
+    // Mark node as syncing (yellow dot)
+    setNodeSyncStatus(node.id, true)
+
+    try {
+      if (direction === 'info-to-logic') {
+        // Call AI to regenerate node logic based on new info
+        const { data } = await with429Retry(node.id, () => httpClient.post(
+          '/ai/resync-node',
+          {
+            nodeId: node.id,
+            nodeType: node.type,
+            nodeName: node.name,
+            info: node.info,
+            currentConfig
+          },
+          { headers: { 'Content-Type': 'application/json' } }
+        ))
+
+        if (data.success && data.updatedNode) {
+          // Update node with AI-generated config
+          Object.assign(node, data.updatedNode)
+
+          // Update registry with new synced info
+          window.semanticNodeRegistry[node.id] = {
+            info: node.info,
+            lastSynced: Date.now()
+          }
+
+          storeFunctionalState(node)
+
+          // Force UI updates
+          RED.nodes.dirty(true)
+          node.dirty = true
+          RED.view.redraw(true)
+
+          // Update tooltip content
+          updateNodeTooltip(node)
+        } else {
+          throw new Error(data.error || 'Failed to sync node with AI')
+        }
+      } else if (direction === 'logic-to-info') {
+        // Call AI to generate semantic description from logic
+        const { data } = await with429Retry(node.id, () => httpClient.post(
+          '/ai/generate-description',
+          {
+            nodeId: node.id,
+            nodeType: node.type,
+            nodeName: node.name,
+            currentConfig
+          },
+          { headers: { 'Content-Type': 'application/json' } }
+        ))
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to generate description')
+        }
+
+        if (!data.name || !data.description) {
+          throw new Error(`AI response missing name or description. Got: ${JSON.stringify(data)}`)
+        }
+
+        // Update node name
+        node.name = data.name
+
+        // Update node info with AI-generated description
+        node.info = data.description
+
+        // Update registry
+        window.semanticNodeRegistry[node.id] = {
+          info: node.info,
+          lastSynced: Date.now()
+        }
+
+        storeFunctionalState(node)
+
+        // Force UI updates
+        RED.nodes.dirty(true)
+        node.dirty = true
+        node.changed = true
+
+        // Trigger Node-RED's internal update
+        RED.events.emit('nodes:change', node)
+
+        // Force canvas redraw
+        RED.view.redraw(true)
+
+        // Update tooltip content
+        updateNodeTooltip(node)
+
+        console.log('[node-tooltip] Description generated successfully:', node.id)
+      }
+    } catch (error) {
+      console.error('[node-tooltip] Re-sync failed:', error)
+      RED.notify('Failed to sync node with AI', 'error')
+    } finally {
+      // Remove syncing status (remove yellow dot)
+      setNodeSyncStatus(node.id, false)
+    }
   }
 
   function observeWorkspace() {
