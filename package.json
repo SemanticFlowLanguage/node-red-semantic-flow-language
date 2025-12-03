@@ -1,0 +1,183 @@
+{
+  "name": "node-red-semantic-flow-language",
+  "version": "0.2.0",
+  "description": "Node-RED Semantic Flow Language - AI-powered tooltips and natural language flow builder plugins",
+  "contributors": [
+    "Will Shostak <GitHub: wshostak>"
+  ],
+  "license": "ISC",
+  "private": false,
+  "main": "index.js",
+  "scripts": {
+    "dev:prepare": "husky install",
+    "coverage": "jest --coverage",
+    "test": "jest",
+    "test:debug": "jest --detectOpenHandles"
+  },
+  "node-red": {
+    "plugins": {
+      "semantic-flow-language": "plugin.html"
+    },
+    "nodes": {
+      "semantic-flow-language": "index.js"
+    }
+  },
+  "jest": {
+    "verbose": true,
+    "testMatch": [
+      "**/test/*.js?(x)"
+    ],
+    "reporters": [
+      "default",
+      [
+        "jest-junit",
+        {
+          "outputDirectory": ".",
+          "outputName": "test-results.xml"
+        }
+      ]
+    ],
+    "coverageReporters": [
+      "cobertura",
+      "text"
+    ],
+    "transform": {
+      "\\.js$": [
+        "babel-jest",
+        {
+          "configFile": "./test/configuration/babel.config.js",
+          "babelrc": false
+        }
+      ]
+    }
+  },
+  "eslintConfig": {
+    "parserOptions": {
+      "sourceType": "module",
+      "ecmaVersion": 2020,
+      "ecmaFeatures": {
+        "globalReturn": true
+      }
+    },
+    "env": {
+      "es2021": true,
+      "node": true,
+      "browser": true,
+      "commonjs": true,
+      "jest": true
+    },
+    "extends": [
+      "airbnb-base"
+    ],
+    "plugins": [
+      "node",
+      "security",
+      "prettier",
+      "jest"
+    ],
+    "rules": {
+      "curly": [
+        "error",
+        "all"
+      ],
+      "semi": [
+        "error",
+        "never"
+      ],
+      "comma-dangle": [
+        "error",
+        "never"
+      ],
+      "arrow-parens": [
+        "error",
+        "as-needed"
+      ],
+      "sort-imports": [
+        "error",
+        {
+          "ignoreMemberSort": true,
+          "ignoreDeclarationSort": true
+        }
+      ],
+      "no-param-reassign": [
+        "error",
+        {
+          "props": false
+        }
+      ],
+      "no-plusplus": [
+        "error",
+        {
+          "allowForLoopAfterthoughts": true
+        }
+      ],
+      "no-bitwise": [
+        "error",
+        {
+          "allow": [
+            "~"
+          ]
+        }
+      ],
+      "jest/no-disabled-tests": "warn",
+      "jest/no-focused-tests": "error",
+      "jest/no-identical-title": "error",
+      "jest/prefer-to-have-length": "warn",
+      "jest/valid-expect": "error"
+    },
+    "globals": {
+      "logger": true,
+      "kantan": true,
+      "logToDB": true,
+      "configs": true,
+      "msg": true,
+      "RED": true,
+      "$": true,
+      "tippy": true
+    }
+  },
+  "keywords": [
+    "node-red",
+    "plugin",
+    "editor",
+    "semantic",
+    "ai",
+    "tooltips",
+    "flow-builder",
+    "natural-language"
+  ],
+  "dependencies": {
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.5"
+  },
+  "peerDependencies": {
+    "node-red": ">=3.0.0"
+  },
+  "repository": "https://github.com/SemanticFlowLanguage/node-red-semantic-flow-language.git",
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jest": "^28.11.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^5.2.3",
+    "eslint-plugin-security": "^3.0.1",
+    "husky": "^8.0.3",
+    "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
+    "nyc": "^15.1.0",
+    "prettier": "^3.5.1",
+    "prettier-eslint": "^16.3.0",
+    "semver": "^7.7.1",
+    "supertest": "^7.0.0"
+  },
+  "apuri": {
+    "Name": "Node-RED Semantic Flow Language",
+    "shortname": "[name",
+    "App_Type": "Module",
+    "Description": "[description]",
+    "Maintainer": "[contributors]",
+    "Internal": true,
+    "Technology Stack": "Node.js, Node-RED Plugin API, Tippy.js, jQuery, Popper.js"
+  }
+}

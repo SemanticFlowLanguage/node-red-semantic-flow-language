@@ -1,0 +1,155 @@
+/* Semantic Flow Language - Custom Styles */
+
+/* ========== Tooltip Styles ========== */
+
+/* Normal tooltip sizing - 3 lines max, 25vw width */
+.tippy-box {
+  max-width: 25vw !important;
+}
+
+.node-tooltip-content {
+  color: var(--red-ui-popover-color, #fff);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: calc(1.5em * 3);
+  line-height: 1.5;
+}
+
+/* Edit mode - expand width and remove line limit */
+.node-tooltip-content[contenteditable="true"] {
+  display: block;
+  -webkit-line-clamp: unset;
+  max-height: none;
+  overflow: visible;
+  outline: none;
+}
+
+[data-tippy-root].red-ui-popover .tippy-box {
+  max-width: 50vw !important;
+}
+
+/* Edit mode popover styling */
+[data-tippy-root].red-ui-popover {
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto;
+  filter: drop-shadow(0 0 4px var(--red-ui-form-input-focus-color, #4CAF50));
+  z-index: 10002 !important;
+}
+
+[data-tippy-root].red-ui-popover .tippy-box[data-state="hidden"],
+[data-tippy-root].red-ui-popover .tippy-content[data-state="hidden"] {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Close button styling */
+.tooltip-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--red-ui-state-error, #f00);
+}
+
+.tooltip-close-btn:hover {
+  background: color-mix(in srgb, var(--red-ui-state-error, #f00) 80%, transparent);
+  color: var(--red-ui-popover-border);
+  outline: 2px solid color-mix(in srgb, var(--red-ui-state-error, #ff0000) 80%, transparent) !important;
+}
+
+/* ========== AI Sidebar Styles ========== */
+
+#ai-prompt-panel.ai-prompt-container {
+  height: calc(100% - 20px);
+  font-size: 13px;
+  color: var(--red-ui-secondary-text-color, #666);
+  background: var(--red-ui-secondary-background, #f6f6f6);
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 10px;
+}
+
+#ai-prompt-panel .ai-prompt-help {
+  font-size: 12px;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+#ai-prompt-panel .ai-prompt-textarea {
+  flex: 1;
+  min-height: 150px;
+  padding: 10px;
+  width: auto;
+  font-family: var(--red-ui-monospace-font, monospace);
+  border: 1px solid var(--red-ui-form-input-border-color, #ccc);
+  border-radius: 4px;
+  resize: vertical;
+  background: var(--red-ui-form-background, #fff);
+  color: var(--red-ui-form-text-color, #333);
+  margin-bottom: 0;
+}
+
+#ai-prompt-panel .ai-prompt-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#ai-prompt-panel .ai-prompt-response {
+  flex: 0 0 auto;
+  min-height: 90px;
+  max-height: 120px;
+  padding: 10px;
+  border: 1px solid var(--red-ui-form-input-border-color, #ccc);
+  border-radius: 4px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-family: var(--red-ui-monospace-font, monospace);
+  display: none;
+}
+
+#ai-prompt-panel .ai-prompt-response.loading {
+  position: relative;
+  padding-left: 30px;
+}
+
+#ai-prompt-panel .ai-prompt-buttons .red-ui-button {
+  flex: 1;
+}
+
+#ai-prompt-panel .ai-prompt-buttons .red-ui-button:first-child {
+  flex: 0 0 auto;
+}
+
+#ai-prompt-panel .red-ui-button.send-prompt[disabled] {
+  position: relative;
+  color: transparent !important;
+}
+
+#ai-prompt-panel .red-ui-button.send-prompt[disabled]::after {
+  content: '';
+  position: absolute;
+  left: calc(50% - 8px);
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  content: "\f1ce";
+  font: normal normal normal 16px/1 FontAwesome;
+  animation: ai-sfl-spin 0.8s linear infinite;
+  color: #bbb;
+}
+
+@keyframes ai-sfl-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
