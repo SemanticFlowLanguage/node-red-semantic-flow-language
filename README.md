@@ -156,14 +156,14 @@ module.exports = {
 3. Click the overlay —Save” button or outside the tooltip to commit.  
 4. The node automatically re-syncs.
 
-## 😋 About Semantic Flow Language (SFL)
+## About Semantic Flow Language (SFL)
 
 SFL is a **Semantic Execution Model** that represents logic as a **bidirectionally synchronized meaning graph** — permitting human intent, AI generation, and executable code to remain aligned.  
 Node-RED serves as the first working implementation of this model.
 
 > Learn more at the *(Semantic Flow Language repository**(https://github.com/SemanticFlowLanguage/semantic-flow-language).
 
-## 🐣 Related Documentation
+## Related Documentation
 
 - [Concept](hhttps://github.com/SemanticFlowLanguage/semantic-flow-language/blob/main/docs/concept.md)
 - [Philosophy](https://github.com/SemanticFlowLanguage/semantic-flow-language/blob/main/philosophy.md)
@@ -173,7 +173,7 @@ Node-RED serves as the first working implementation of this model.
 
 - **Author:** William Shostak (https://github.com/wshostak)
 
-## 🚪 License
+## License
 This project is licensed under the **ISC License** — see the **[LICENSE](./LICENSE.txt)** file for more details.
 
 Copyright (c) 2025 William Shostak
