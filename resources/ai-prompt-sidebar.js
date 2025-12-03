@@ -22,6 +22,7 @@
 
     // Show loading state
     submitBtn.prop('disabled', true)
+    submitBtn.addClass('sent-prompt')
     responseArea.text('Building your flow...').show()
 
     // Get current workspace context (only nodes from current tab)
@@ -273,6 +274,7 @@
       .finally(() => {
         const hasContent = promptArea.val().trim().length > 0
         submitBtn.prop('disabled', !hasContent)
+        submitBtn.removeClass('sent-prompt')
       })
   }
 

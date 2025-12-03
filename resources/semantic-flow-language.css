@@ -7,19 +7,9 @@
   max-width: 25vw !important;
 }
 
-#node-tooltip-overlay {
-
-}
 .node-tooltip-content {
   color: var(--red-ui-popover-color, #fff);
   display: -webkit-box;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 10001;
-  cursor: pointer;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -58,20 +48,6 @@
 
 /* Close button styling */
 .tooltip-close-btn {
-  position: absolute;
-  top: 4px;
-  right: 8px;
-  font-size: 20px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  padding: 0;
-  z-index: 1;
   background: transparent;
   border: none;
   color: var(--red-ui-state-error, #f00);
@@ -150,12 +126,12 @@
   flex: 0 0 auto;
 }
 
-#ai-prompt-panel .red-ui-button.send-prompt[disabled] {
+#ai-prompt-panel .red-ui-button.sent-prompt[disabled] {
   position: relative;
   color: transparent !important;
 }
 
-#ai-prompt-panel .red-ui-button.send-prompt[disabled]::after {
+#ai-prompt-panel .red-ui-button.sent-prompt[disabled]::after {
   content: '';
   position: absolute;
   left: calc(50% - 8px);
