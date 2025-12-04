@@ -40,14 +40,15 @@
     const createIntent = /\b(create|build|make|generate|new)\b/i.test(prompt)
     const updateIntent = /\b(add|update|modify|change|append|insert)\b/i.test(prompt)
     const shouldCreateNewTab = createIntent && !updateIntent
-
     const httpClient = window.axios
 
     if (!httpClient) {
       const errorMsg = 'Axios client not available. Please ensure it is loaded in the editor.'
+
       responseArea.text(errorMsg).show()
       RED.notify('Failed to build flow', 'error')
       console.error('[ai-flow-builder] Error:', errorMsg)
+
       return
     }
 
@@ -62,9 +63,7 @@
         { headers: { 'Content-Type': 'application/json' } }
       )
       .then(({ data }) => {
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to generate flow')
-        }
+        if (!data.success) { throw new Error(data.error || 'Failed to generate flow') }
 
         // Import the AI-generated flow
         if (data.flow && data.flow.length > 0) {
@@ -92,7 +91,6 @@
             // Import tab + nodes together
             RED.nodes.import([tabNode, ...data.flow])
             RED.workspaces.show(newTabId)
-
             RED.nodes.eachNode(node => {
               if (node.z === targetTab) {
                 node.changed = true
@@ -101,7 +99,6 @@
               }
             })
             RED.view.redraw(true)
-
             // Mark flow as modified
             RED.nodes.dirty(true)
           } else {
@@ -178,9 +175,9 @@
             // SECOND: Update existing nodes (now wires can reference new nodes)
             nodesToUpdate.forEach(newNode => {
               const existingNode = existingNodes.get(newNode.id)
-
               // Update all properties including position and wires
               const skipKeys = new Set(['id', 'type', 'z', 'x', 'y', 'wires'])
+
               Object.keys(newNode).forEach(key => {
                 if (!skipKeys.has(key)) {
                   existingNode[key] = newNode[key]
@@ -194,17 +191,20 @@
 
               if (Array.isArray(newNode.wires)) {
                 const linksToRemove = []
+
                 RED.nodes.eachLink(link => {
                   if (link.source && link.source.id === existingNode.id) {
                     linksToRemove.push(link)
                   }
                 })
-                linksToRemove.forEach(link => RED.nodes.removeLink(link))
 
+                linksToRemove.forEach(link => RED.nodes.removeLink(link))
                 existingNode.wires = newNode.wires.map(wireSet => [...wireSet])
+
                 newNode.wires.forEach((wireSet, portIndex) => {
                   wireSet.forEach(targetId => {
                     const targetNode = RED.nodes.node(targetId)
+
                     if (targetNode) {
                       RED.nodes.addLink({
                         source: existingNode,
@@ -218,7 +218,6 @@
 
               // Trigger change event for UI update
               RED.events.emit('nodes:change', existingNode)
-
               // Force node position update in UI
               existingNode.dirty = true
             })
@@ -246,6 +245,7 @@
             if (data.metadata.usage) {
               successMsg += `\nTokens used: ${data.metadata.usage.total_tokens}`
             }
+
             if (data.metadata.citations && data.metadata.citations.length > 0) {
               successMsg += `\nUsed ${data.metadata.citations.length} documentation sources`
             }
@@ -253,7 +253,6 @@
 
           responseArea.text(successMsg).show()
           RED.notify('Flow built from AI prompt', 'success')
-
           // Mark flow as modified
           RED.nodes.dirty(true)
         } else {
@@ -267,6 +266,7 @@
           ? `HTTP ${err.response.status}: ${err.response.statusText || 'Request failed'}`
           : err.message
         const errorMsg = `Error: ${errorDetail || statusText}\n\nPlease check:\n- AI connector is configured\n- API keys are valid\n- Network connection is stable`
+
         responseArea.text(errorMsg)
         RED.notify('Failed to build flow', 'error')
         console.error('[ai-flow-builder] Error:', err)
@@ -332,6 +332,7 @@
     // Enable/disable button based on textarea content
     promptArea.on('input', () => {
       const hasContent = promptArea.val().trim().length > 0
+
       submitBtn.prop('disabled', !hasContent)
     })
 
@@ -361,8 +362,7 @@
       order: -1 // Make it the absolute first tab (farthest left)
     })
 
-    // Show the tab by default after a short delay
-    setTimeout(() => {
+    RED.events.on('flows:loaded', () => {
       const lastTab = localStorage.getItem('red-ui-last-sidebar-tab')
 
       if (!lastTab || lastTab === 'ai-flow-builder') {
@@ -383,7 +383,7 @@
       }
 
       // Track tab changes to persist the selection
-      $('.red-ui-tab-link-button').on('click', function () {
+      $('.red-ui-tab-link-button').on('click', () => {
         const tabId = $(this).attr('href')?.substring(1)
 
         if (tabId) {
@@ -391,7 +391,7 @@
           console.log('[ai-prompt-sidebar] Saved last tab:', tabId)
         }
       })
-    }, 200)
+    })
 
     sidebarInitialized = true
     console.log('[ai-prompt-sidebar] Sidebar initialized')
