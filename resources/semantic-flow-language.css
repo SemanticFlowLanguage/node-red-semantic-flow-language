@@ -48,6 +48,20 @@
 
 /* Close button styling */
 .tooltip-close-btn {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 20px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  z-index: 1;
   background: transparent;
   border: none;
   color: var(--red-ui-state-error, #f00);
@@ -152,4 +166,16 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Overlay for node tooltip edit mode - moved from inline JS styles */
+#node-tooltip-overlay,
+.node-tooltip-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10001;
+  cursor: pointer;
 }

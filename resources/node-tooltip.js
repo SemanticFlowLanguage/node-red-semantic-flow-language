@@ -410,14 +410,7 @@
     if (!overlay) {
       overlay = document.createElement('div')
       overlay.id = 'node-tooltip-overlay'
-      overlay.className = 'ui-widget-overlay ui-front'
-      overlay.style.position = 'fixed'
-      overlay.style.top = '0'
-      overlay.style.left = '0'
-      overlay.style.right = '0'
-      overlay.style.bottom = '0'
-      overlay.style.zIndex = '10001'
-      overlay.style.cursor = 'pointer'
+      overlay.className = 'ui-widget-overlay ui-front node-tooltip-overlay'
       document.body.appendChild(overlay)
     }
 
@@ -445,20 +438,6 @@
     closeBtn.className = 'tooltip-close-btn'
     closeBtn.innerHTML = '×'
     closeBtn.title = 'Discard changes (Esc)'
-    closeBtn.style.position = 'absolute'
-    closeBtn.style.top = '4px'
-    closeBtn.style.right = '8px'
-    closeBtn.style.fontSize = '20px'
-    closeBtn.style.width = '24px'
-    closeBtn.style.height = '24px'
-    closeBtn.style.borderRadius = '50%'
-    closeBtn.style.cursor = 'pointer'
-    closeBtn.style.display = 'flex'
-    closeBtn.style.alignItems = 'center'
-    closeBtn.style.justifyContent = 'center'
-    closeBtn.style.lineHeight = '1'
-    closeBtn.style.padding = '0'
-    closeBtn.style.zIndex = '1'
 
     closeBtn.onclick = e => {
       e.preventDefault()
