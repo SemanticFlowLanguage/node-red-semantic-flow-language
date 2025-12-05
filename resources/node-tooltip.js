@@ -56,6 +56,14 @@
 
   function exitEditMode(content, instance, node, displayText, save) {
     console.log('[node-tooltip] Exiting edit mode, save:', save)
+
+    // Clear the interval that forces pointer-events
+    const intervalId = content.dataset.forceInteractiveInterval
+    if (intervalId) {
+      clearInterval(Number(intervalId))
+      delete content.dataset.forceInteractiveInterval
+    }
+
     content.contentEditable = 'false'
     content.style.background = ''
     content.style.padding = ''
@@ -63,6 +71,7 @@
 
     instance.popper.classList.remove('red-ui-popover')
     instance.popper.style.zIndex = ''
+    instance.popper.style.pointerEvents = ''
 
     const closeBtn = content.parentElement?.querySelector('.tooltip-close-btn')
     if (closeBtn) {
@@ -223,11 +232,7 @@
           const retryAfterHeader = error.response.headers?.['retry-after']
           const retryAfterBody = error.response.data?.retryAfter ?? error.response.data?.retry_after
           const retryAfterSeconds = Number(retryAfterHeader ?? retryAfterBody)
-          const waitMs = (
-            Number.isFinite(retryAfterSeconds)
-              ? retryAfterSeconds * 1000
-              : 1000
-          ) + 1000
+          const waitMs = (Number.isFinite(retryAfterSeconds) ? retryAfterSeconds * 1000 : 1000) + 1000
           const waitSeconds = Math.ceil(waitMs / 1000)
 
           setNodeSyncStatus(nodeId, 'waiting')
@@ -416,7 +421,8 @@
     // Remove old click handler
     overlay.onclick = null
 
-    // Click on overlay saves changes
+    // Click on overlay saves changes - but only if click is outside the popover
+    // This prevents clicks on editable content (when popover repositions) from triggering save
     overlay.onclick = e => {
       e.preventDefault()
       e.stopPropagation()
@@ -469,8 +475,9 @@
     // Force show and keep visible
     instance.show()
 
-    // Override Tippy's visibility controls
-    setTimeout(() => {
+    // Override Tippy's visibility controls AND pointer-events
+    // This must be done to prevent clicks from passing through during repositioning
+    const forceInteractive = () => {
       instance.popper.style.pointerEvents = 'auto'
       instance.popper.style.zIndex = '10002'
 
@@ -483,7 +490,14 @@
       if (contentEl) {
         contentEl.setAttribute('data-state', 'visible')
       }
-    }, 10)
+    }
+
+    // Apply immediately and monitor for Tippy resets
+    forceInteractive()
+    const intervalId = setInterval(forceInteractive, 50)
+
+    // Store interval ID so we can clear it on exit
+    content.dataset.forceInteractiveInterval = intervalId
 
     addCloseButton(content, instance, node, displayText, rawInfo)
 
