@@ -5,6 +5,8 @@
   Part of Semantic Flow Language - Phase 1
 */
 
+/* eslint-disable no-use-before-define */
+
 (function () {
   const tippyInstances = new Map()
 
@@ -37,9 +39,6 @@
   function createTooltipContent(displayText, rawInfo, node) {
     const div = document.createElement('div')
     div.className = 'node-tooltip-content'
-    div.style.whiteSpace = 'pre-wrap'
-    div.style.wordWrap = 'break-word'
-    div.style.cursor = 'pointer'
     div.textContent = displayText
     div.dataset.rawInfo = rawInfo
     div.dataset.displayText = displayText
@@ -456,7 +455,6 @@
     showEditOverlay(instance, content, rawInfo, node, displayText)
 
     content.contentEditable = 'true'
-    content.style.padding = '12px 40px 12px 16px'
     content.textContent = rawInfo || displayText
 
     instance.popper.classList.add('red-ui-popover')
@@ -583,7 +581,12 @@
       existingInstance.destroy()
     }
 
-    const instance = tippy(nodeElement, {
+    // Prefer attaching the tooltip to the visible rect inside the node group
+    // so hover/click target aligns with the node's shape. Fall back to the
+    // group element if the rect isn't found.
+    const targetElement = nodeElement.querySelector('rect.red-ui-flow-node') || nodeElement
+
+    const instance = tippy(targetElement, {
       content: createTooltipContent(displayText, rawInfo, node),
       allowHTML: true,
       interactive: true,
