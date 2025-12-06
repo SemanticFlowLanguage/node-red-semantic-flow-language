@@ -306,7 +306,7 @@
       id: 'ai-prompt-input',
       class: 'ai-prompt-textarea',
       placeholder:
-        'Example:\n\n"Create an app that pulls all todays tickets from Zendesk everyday at 7am and sends a report to wshostak@e2cc.com showing how many tickets each agent closed"\n\nor\n\n"Add after sending email create a Zendesk ticket with that report"'
+        'Example:\n\n"Create an app that pulls all todays tickets from Zendesk everyday at 7am and sends a report to test@test.com showing how many tickets each agent closed"\n\nor\n\n"Add after sending email create a Zendesk ticket with that report"'
     })
 
     // Add button container
