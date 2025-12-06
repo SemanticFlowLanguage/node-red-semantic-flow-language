@@ -177,27 +177,48 @@
 
   function extractFunctionalProperties(node) {
     const functional = {}
-    const keys = [
-      'func',
-      'rules',
-      'url',
-      'method',
-      'ret',
-      'property',
-      'payload',
-      'topic',
-      'to',
-      'outputs',
-      'split',
-      'fixdmax',
-      'complete',
-      'finalize',
-      'initialize'
+    // Blacklist: Properties that are NOT functional (UI state, metadata, etc.)
+    const nonFunctionalKeys = [
+      'id',
+      'type',
+      'name',
+      'info',
+      'x',
+      'y',
+      'z',
+      'wires',
+      'changed',
+      'dirty',
+      '_config',
+      '_def',
+      '_',
+      'users',
+      'inputLabels',
+      'outputLabels',
+      'icon',
+      'align',
+      'label',
+      'labelStyle'
     ]
 
-    keys.forEach(key => {
-      if (key in node) {
-        functional[key] = node[key]
+    // Include all properties except the blacklisted ones
+    // Only include serializable values (no functions, circular refs, etc.)
+    Object.keys(node).forEach(key => {
+      if (!nonFunctionalKeys.includes(key) && node[key] !== undefined) {
+        const value = node[key]
+        const valueType = typeof value
+
+        // Only include primitives, arrays, and plain objects
+        if (
+          valueType === 'string'
+          || valueType === 'number'
+          || valueType === 'boolean'
+          || value === null
+          || Array.isArray(value)
+          || (valueType === 'object' && value.constructor === Object)
+        ) {
+          functional[key] = value
+        }
       }
     })
 
@@ -208,11 +229,9 @@
     const current = extractFunctionalProperties(node)
     const previous = window.nodeFunctionalState[node.id]
 
-    if (!previous) {
-      return false
-    }
-
-    return JSON.stringify(current) !== JSON.stringify(previous)
+    return !previous
+      ? false
+      : JSON.stringify(current) !== JSON.stringify(previous)
   }
 
   function storeFunctionalState(node) {
