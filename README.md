@@ -7,7 +7,7 @@
 
 This plugin extends Node-RED with **Semantic Flow Language (SFL)** features — enabling **AI-assisted flow creation**, **semantic sync between intent and logic**, and **inline editable tooltips** for clarity and transparency.
 
-For the full concept, specification, and philosophy, visit the main project: [Semantic Flow Language Repository](https://github.com/semantic-flow-language/semantic-flow-language)
+For the full concept, specification, and philosophy, visit the main project: [Semantic Flow Language Repository](https://github.com/SemanticFlowLanguage/semantic-flow-language))
 
 ## Features
 
