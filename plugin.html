@@ -11,10 +11,10 @@
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/dist/tippy.css">
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/themes/light.css">
 
-<!-- 4. Your CSS -->
+<!-- 4. CSS -->
 <link rel="stylesheet" href="/resources/node-red-semantic-flow-language/semantic-flow-language.css">
 
-<!-- 5. Your plugins that call tippy() -->
+<!-- 5. Plugins that call tippy() -->
 <script src="/resources/node-red-semantic-flow-language/node-tooltip.js"></script>
 <script src="/resources/node-red-semantic-flow-language/ai-prompt-sidebar.js"></script>
 
@@ -32,6 +32,10 @@
         RED.events.removeListener(eventName, handler)
       }
     }
+
+    // npm/unpkg lookup helpers (best-effort, cached)
+    const npmRegistryUrl = 'https://registry.npmjs.org/'
+    const unpkgUrl = 'https://unpkg.com/'
 
     const sendCustomNodes = async () => {
       const registry = RED?.nodes?.registry
@@ -69,8 +73,9 @@
           }
 
           const schema = (def && (def.schema || def.defaults)) || {}
+          const packageName = (nodeSet && nodeSet.id ? nodeSet.id : type).split('/')[0]
 
-          nodes.push({ name: type, schema })
+          nodes.push({ name: type, schema, packageName })
         }
       }
 

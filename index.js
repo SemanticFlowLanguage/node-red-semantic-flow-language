@@ -1,6 +1,7 @@
 // Node-RED plugin entry point (Node.js/server-side)
 // Registers AI flow builder HTTP endpoints and serves resources
 const getEnv = require('./resources/config-loader')
+const axios = require('axios')
 
 let customNodes = []
 const summarized = () => customNodes.map(n => ({
@@ -8,16 +9,42 @@ const summarized = () => customNodes.map(n => ({
   fields: Object.keys(n.schema)
 }))
 
-module.exports = function (RED) {
+module.exports = async function (RED) {
   if (typeof getEnv.setSettings === 'function') {
     getEnv.setSettings(RED.settings)
   }
 
   // Determine which AI connector to use (default: azure-openai)
   const connectorName = getEnv('AI_CONNECTOR', 'azure-openai')
-
   // Dynamically load the connector module
   let connector
+  const packageInfoCache = new Map()
+  const packageInfoCacheUrl = getEnv('PACKAGE_INFO_CACHE_URL', '')
+  const packageInfoCacheRaw = getEnv('PACKAGE_INFO_CACHE', [])
+
+  const setPackageInfoCache = arr => {
+    arr.forEach(pkgInfo => {
+      const { name, description } = pkgInfo
+
+      packageInfoCache.set(name, description)
+    })
+  }
+
+  const ensurePackageInfoCache = async () => {
+    setPackageInfoCache(packageInfoCacheRaw)
+
+    if (packageInfoCacheUrl) {
+      try {
+        const { data } = await axios.get(packageInfoCacheUrl, { timeout: 5000 })
+
+        setPackageInfoCache(data)
+      } catch (e) {
+        // continue silently
+      }
+    }
+  }
+
+  await ensurePackageInfoCache()
 
   try {
     // eslint-disable-next-line import/no-dynamic-require, global-require
@@ -26,13 +53,51 @@ module.exports = function (RED) {
     RED.log.error(`[semantic-flow-language] Failed to load connector "${connectorName}": ${e.message}`)
   }
 
+  const packageInfo = async name => {
+    let description = packageInfoCache.get(name) || ''
+
+    if (!description) {
+      try {
+        // Try npm registry
+        const registryRes = await axios.get(`https://registry.npmjs.org/${encodeURIComponent(name)}`, { timeout: 5000 })
+        const { data } = registryRes
+        const latest = data['dist-tags'] && data['dist-tags'].latest
+        const info = latest && data.versions ? data.versions[latest] : data
+        const desc = (info && info.description) || data.description || ''
+
+        packageInfoCache.set(name, description)
+        description = desc
+      } catch (e) {
+        // try unpkg fallback
+        try {
+          const unpkgRes = await axios.get(`https://unpkg.com/${name}/package.json`, { timeout: 5000 })
+          const info = unpkgRes.data
+          const desc = info && info.description ? info.description : ''
+
+          packageInfoCache.set(name, description)
+          description = desc
+        } catch (er) {
+          // Give up and return empty description
+          packageInfoCache.set(name, '')
+        }
+      }
+    }
+
+    return description
+  }
+
   // Receive client-provided custom node metadata
-  RED.httpAdmin.post('/ai/custom-nodes', (req, res) => {
+  RED.httpAdmin.post('/ai/custom-nodes', async (req, res) => {
     const { nodes } = req.body || {}
 
     if (!Array.isArray(nodes)) {
       return res.status(400).json({ success: false, error: 'nodes must be an array' })
     }
+
+    await Promise.all(nodes.map(async n => {
+      n.description = await packageInfo(n.packageName)
+      delete n.packageName
+    }))
 
     customNodes = nodes
     RED.log.info(`[semantic-flow-language] Stored ${customNodes.length} custom nodes`)
