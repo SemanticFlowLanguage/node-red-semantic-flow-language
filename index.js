@@ -2,6 +2,12 @@
 // Registers AI flow builder HTTP endpoints and serves resources
 const getEnv = require('./resources/config-loader')
 
+let customNodes = []
+const summarized = () => customNodes.map(n => ({
+  name: n.name,
+  fields: Object.keys(n.schema)
+}))
+
 module.exports = function (RED) {
   if (typeof getEnv.setSettings === 'function') {
     getEnv.setSettings(RED.settings)
@@ -20,13 +26,27 @@ module.exports = function (RED) {
     RED.log.error(`[semantic-flow-language] Failed to load connector "${connectorName}": ${e.message}`)
   }
 
+  // Receive client-provided custom node metadata
+  RED.httpAdmin.post('/ai/custom-nodes', (req, res) => {
+    const { nodes } = req.body || {}
+
+    if (!Array.isArray(nodes)) {
+      return res.status(400).json({ success: false, error: 'nodes must be an array' })
+    }
+
+    customNodes = nodes
+    RED.log.info(`[semantic-flow-language] Stored ${customNodes.length} custom nodes`)
+
+    return res.json({ success: true })
+  })
+
   // Register HTTP endpoint for AI flow generation
   // eslint-disable-next-line consistent-return
   RED.httpAdmin.post('/ai/build-flow', async (req, res) => {
     let output = { success: false, flow: [], error: '' }
 
     try {
-      const { prompt, context } = req.body
+      const { prompt, context = {} } = req.body
 
       if (!prompt || !prompt.trim()) {
         output.error = 'Prompt is required'
@@ -43,6 +63,8 @@ module.exports = function (RED) {
 
         return res.status(500).json(output)
       }
+
+      context.customNodes = summarized()
 
       // Generate flow using AI connector
       const result = await connector.generateFlow(prompt, context)
@@ -70,7 +92,11 @@ module.exports = function (RED) {
 
     try {
       const {
-        nodeId, nodeType, nodeName, info, currentConfig
+        nodeId,
+        nodeType,
+        nodeName,
+        info,
+        currentConfig
       } = req.body
 
       if (!nodeId || !info || !info.trim()) {
@@ -87,6 +113,8 @@ module.exports = function (RED) {
         output.error = `AI not configured: ${validation.errors.join(', ')}`
         return res.status(500).json(output)
       }
+
+      currentConfig.customNodes = summarized()
 
       // Generate updated node config using AI connector
       const result = await connector.resyncNode(

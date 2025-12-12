@@ -24,7 +24,6 @@ For the full concept, specification, and philosophy, visit the main project: [Se
   - Keeps node `info` (intent) and logic aligned
   - Blue-dot indicators for updated nodes
   - 429 rate-limit handling with exponential backoff
-  - Never blocks deploy — errors are logged via kjantan-logger
 
 - **Native Integration**   
   - Uses Node-RED event system (`node:added`, `node:changed`, `deploy`)  

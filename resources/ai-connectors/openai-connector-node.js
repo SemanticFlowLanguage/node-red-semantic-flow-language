@@ -1,7 +1,5 @@
-/*
-  OpenAI Connector - Node.js version
-  Server-side implementation using axios
-*/
+// OpenAI Connector - Node.js version
+// Server-side implementation using axios
 const axios = require('axios')
 const getEnv = require('../config-loader')
 
@@ -341,7 +339,8 @@ const OpenAIConnector = {
       return this.setPlaceholders(USER_PROMPT_WITH_CONTEXT, {
         prompt,
         nodeCount: context.nodes.length,
-        existingFlow
+        existingFlow,
+        customNodes: context.customNodes
       })
     }
 

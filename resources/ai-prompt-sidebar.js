@@ -63,7 +63,9 @@
         { headers: { 'Content-Type': 'application/json' } }
       )
       .then(({ data }) => {
-        if (!data.success) { throw new Error(data.error || 'Failed to generate flow') }
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to generate flow')
+        }
 
         // Import the AI-generated flow
         if (data.flow && data.flow.length > 0) {
@@ -362,7 +364,11 @@
       order: -1 // Make it the absolute first tab (farthest left)
     })
 
-    RED.events.on('flows:loaded', () => {
+    console.log('[ai-prompt-sidebar] Sidebar tab added')
+
+    // Function to show and configure the sidebar
+    const configureSidebar = () => {
+      console.log('[ai-prompt-sidebar] Configuring sidebar')
       const lastTab = localStorage.getItem('red-ui-last-sidebar-tab')
 
       if (!lastTab || lastTab === 'ai-flow-builder') {
@@ -382,15 +388,33 @@
         aiButton.css('display', '')
       }
 
-      // Track tab changes to persist the selection
-      $('.red-ui-tab-link-button').on('click', () => {
-        const tabId = $(this).attr('href')?.substring(1)
+      // Track tab changes to persist the selection (only add once)
+      if (!$('.red-ui-tab-link-button').data('ai-sidebar-tracked')) {
+        $('.red-ui-tab-link-button').on('click', function handleTabClick() {
+          const tabId = $(this).attr('href')?.substring(1)
 
-        if (tabId) {
-          localStorage.setItem('red-ui-last-sidebar-tab', tabId)
-          console.log('[ai-prompt-sidebar] Saved last tab:', tabId)
-        }
-      })
+          if (tabId) {
+            localStorage.setItem('red-ui-last-sidebar-tab', tabId)
+            console.log('[ai-prompt-sidebar] Saved last tab:', tabId)
+          }
+        })
+        $('.red-ui-tab-link-button').data('ai-sidebar-tracked', true)
+      }
+    }
+
+    // Poll until sidebar buttons exist OR flows are loaded, then configure
+    const checkInterval = setInterval(() => {
+      const button = $('.red-ui-tab-link-buttons')
+      if (button.length > 0) {
+        clearInterval(checkInterval)
+        configureSidebar()
+      }
+    }, 100)
+
+    // Also listen to flows:loaded as a secondary trigger
+    RED.events.on('flows:loaded', () => {
+      clearInterval(checkInterval)
+      configureSidebar()
     })
 
     sidebarInitialized = true

@@ -1,7 +1,5 @@
-/*
-  Anthropic (Claude) Connector - Node.js version
-  Server-side implementation using axios
-*/
+// Anthropic (Claude) Connector - Node.js version
+// Server-side implementation using axios
 const axios = require('axios')
 const getEnv = require('../config-loader')
 
@@ -137,7 +135,7 @@ const AnthropicConnector = {
     return output
   },
 
-  async resyncNode(nodeId, nodeType, info, currentConfig, configOverride, nodeName = '') {
+  async resyncNode(nodeId, nodeType, info, currentConfig, configOverride, customNodes, nodeName = '') {
     const config = configOverride || this.getConfig()
     const output = {
       success: false,
@@ -312,7 +310,8 @@ const AnthropicConnector = {
       return this.setPlaceholders(USER_PROMPT_WITH_CONTEXT, {
         prompt,
         nodeCount: context.nodes.length,
-        existingFlow
+        existingFlow,
+        customNodes: context.customNodes
       })
     }
 

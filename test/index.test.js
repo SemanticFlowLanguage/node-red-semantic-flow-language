@@ -41,9 +41,12 @@ describe('index plugin entry', () => {
     pluginEntry(RED)
 
     expect(registerPlugin).toHaveBeenCalled()
-    expect(httpAdminPost).toHaveBeenCalledTimes(3)
+    expect(httpAdminPost).toHaveBeenCalledTimes(4)
 
-    const [, buildFlowHandler] = httpAdminPost.mock.calls[0]
+    const buildFlowCall = httpAdminPost.mock.calls.find(call => call[0] === '/ai/build-flow')
+    expect(buildFlowCall).toBeTruthy()
+
+    const [, buildFlowHandler] = buildFlowCall
     await buildFlowHandler({ body: { prompt: 'test prompt' } }, res)
 
     expect(res.json).toHaveBeenCalled()

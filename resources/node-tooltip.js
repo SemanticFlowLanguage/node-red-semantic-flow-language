@@ -251,7 +251,10 @@
           const retryAfterHeader = error.response.headers?.['retry-after']
           const retryAfterBody = error.response.data?.retryAfter ?? error.response.data?.retry_after
           const retryAfterSeconds = Number(retryAfterHeader ?? retryAfterBody)
-          const waitMs = (Number.isFinite(retryAfterSeconds) ? retryAfterSeconds * 1000 : 1000) + 1000
+          const waitMs = (Number.isFinite(retryAfterSeconds)
+            ? retryAfterSeconds * 1000
+            : 1000
+          ) + 1000
           const waitSeconds = Math.ceil(waitMs / 1000)
 
           setNodeSyncStatus(nodeId, 'waiting')

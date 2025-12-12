@@ -20,10 +20,116 @@
 
 <!-- 6. Plugin registration -->
 <script type="text/javascript">
-   RED.plugins.registerPlugin("node-red-semantic-flow-language", {
-       type: "semantic-flow-language",
-       onadd: function() {
-           console.log('[semantic-flow-language] Plugin loaded');
-       }
-   });
+  (function () {
+    const customNodeEvents = ['flows:loaded', 'registry:node-set-added', 'registry:node-set-removed']
+    const detachFns = []
+    let sendTimeout = null
+
+    const removeListener = (eventName, handler) => {
+      if (RED?.events?.off) {
+        RED.events.off(eventName, handler)
+      } else if (RED?.events?.removeListener) {
+        RED.events.removeListener(eventName, handler)
+      }
+    }
+
+    const sendCustomNodes = async () => {
+      const registry = RED?.nodes?.registry
+
+      if (!registry || typeof registry.getNodeList !== 'function') {
+        return
+      }
+
+      const nodeList = registry.getNodeList() || []
+      const nodes = []
+      const seenTypes = new Set()
+
+      for (let i = 0; i < nodeList.length; i += 1) {
+        const nodeSet = nodeList[i]
+
+        if (!nodeSet || typeof nodeSet.id !== 'string' || nodeSet.id.startsWith('node-red/')) {
+          continue
+        }
+
+        const types = nodeSet.types || []
+
+        for (let j = 0; j < types.length; j += 1) {
+          const type = types[j]
+
+          if (!type || seenTypes.has(type)) {
+            continue
+          }
+
+          seenTypes.add(type)
+
+          const def = typeof RED?.nodes?.getType === 'function' ? RED.nodes.getType(type) : null
+
+          if (def && def.category === 'config') {
+            continue
+          }
+
+          const schema = (def && (def.schema || def.defaults)) || {}
+
+          nodes.push({ name: type, schema })
+        }
+      }
+
+      const adminRoot = (RED?.settings?.httpAdminRoot || '').replace(/\/$/, '')
+      const url = adminRoot ? `${adminRoot}/ai/custom-nodes` : '/ai/custom-nodes'
+
+      try {
+        await axios.post(url, { nodes })
+      } catch (err) {
+        // Best-effort; no UI impact
+        console.warn('[semantic-flow-language] Failed to send custom nodes', err)
+      }
+    }
+
+    const scheduleSend = () => {
+      if (sendTimeout) {
+        return
+      }
+
+      sendTimeout = setTimeout(() => {
+        sendTimeout = null
+        sendCustomNodes()
+      }, 25)
+    }
+
+    const registerListeners = () => {
+      if (!RED?.events?.on) {
+        return
+      }
+
+      for (let i = 0; i < customNodeEvents.length; i += 1) {
+        const evt = customNodeEvents[i]
+
+        RED.events.on(evt, scheduleSend)
+        detachFns.push(() => removeListener(evt, scheduleSend))
+      }
+    }
+
+    const unregisterListeners = () => {
+      if (!detachFns.length) {
+        return
+      }
+
+      while (detachFns.length) {
+        const detach = detachFns.pop()
+        detach()
+      }
+    }
+
+    RED.plugins.registerPlugin('node-red-semantic-flow-language', {
+      type: 'semantic-flow-language',
+      onadd() {
+        console.log('[semantic-flow-language] Plugin loaded')
+        registerListeners()
+        scheduleSend()
+      },
+      onremove() {
+        unregisterListeners()
+      }
+    })
+  }())
 </script>
