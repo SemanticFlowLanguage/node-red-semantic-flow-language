@@ -44,8 +44,6 @@ module.exports = async function (RED) {
     }
   }
 
-  await ensurePackageInfoCache()
-
   try {
     // eslint-disable-next-line import/no-dynamic-require, global-require
     connector = require(`./resources/ai-connectors/${connectorName}-connector-node`)
@@ -266,6 +264,8 @@ module.exports = async function (RED) {
     type: 'node-red-theme',
     scripts: ['node-tooltip.js', 'ai-prompt-sidebar.js']
   })
+
+  await ensurePackageInfoCache()
 
   RED.log.info('[semantic-flow-language] Plugin registered with AI flow builder endpoint')
 }
