@@ -366,10 +366,19 @@
 
     console.log('[ai-prompt-sidebar] Sidebar tab added')
 
+    const safeStorage = {
+      get(key) {
+        try { return localStorage.getItem(key) } catch { return null }
+      },
+      set(key, val) {
+        try { localStorage.setItem(key, val) } catch {}
+      }
+    }
+
     // Function to show and configure the sidebar
     const configureSidebar = () => {
       console.log('[ai-prompt-sidebar] Configuring sidebar')
-      const lastTab = localStorage.getItem('red-ui-last-sidebar-tab')
+      const lastTab = safeStorage.get('red-ui-last-sidebar-tab')
 
       if (!lastTab || lastTab === 'ai-flow-builder') {
         RED.sidebar.show('ai-flow-builder')
@@ -394,7 +403,7 @@
           const tabId = $(this).attr('href')?.substring(1)
 
           if (tabId) {
-            localStorage.setItem('red-ui-last-sidebar-tab', tabId)
+            safeStorage.set('red-ui-last-sidebar-tab', tabId)
             console.log('[ai-prompt-sidebar] Saved last tab:', tabId)
           }
         })

@@ -261,8 +261,7 @@ module.exports = async function (RED) {
 
   // Register plugin with Node-RED
   RED.plugins.registerPlugin('node-red-semantic-flow-language', {
-    type: 'node-red-theme',
-    scripts: ['node-tooltip.js', 'ai-prompt-sidebar.js']
+    type: 'node-red-theme'
   })
 
   await ensurePackageInfoCache()
