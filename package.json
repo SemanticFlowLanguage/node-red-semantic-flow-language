@@ -1,6 +1,6 @@
 {
   "name": "node-red-semantic-flow-language",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Node-RED Semantic Flow Language - AI-powered tooltips and natural language flow builder plugins",
   "contributors": [
     "Will Shostak <GitHub: wshostak>"

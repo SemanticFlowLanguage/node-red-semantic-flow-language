@@ -628,7 +628,7 @@
       interactive: true,
       trigger: 'mouseenter',
       placement: 'right',
-      theme: 'light',
+      theme: 'dark',
       maxWidth: 450,
       appendTo: document.body,
       zIndex: 10001,
