@@ -2,14 +2,7 @@
 // Server-side implementation using axios
 const axios = require('axios')
 const getEnv = require('../config-loader')
-
-const USER_PROMPT_TEMPLATE = getEnv('USER_PROMPT_TEMPLATE')
-const USER_PROMPT_WITH_CONTEXT = getEnv('USER_PROMPT_WITH_CONTEXT')
-const NODE_SEMANTIC_UPDATE_PROMPT = getEnv('NODE_SEMANTIC_UPDATE_PROMPT')
-const DESCRIPTION_GENERATION_PROMPT = getEnv('DESCRIPTION_GENERATION_PROMPT')
-const SYSTEM_PROMPT = getEnv('SYSTEM_PROMPT')
-const SYSTEM_PROMPT_FLOW = getEnv('SYSTEM_PROMPT_FLOW')
-const SYSTEM_PROMPT_NODE = getEnv('SYSTEM_PROMPT_NODE')
+const ConnectorUtils = require('./connector-utils')
 
 const AzureOpenAIConnector = {
   name: 'azure-openai',
@@ -38,17 +31,6 @@ const AzureOpenAIConnector = {
     }
   },
 
-  setPlaceholders(prompt, values) {
-    let result = prompt
-
-    Object.entries(values).forEach(([key, value]) => {
-      const placeholder = `{${key}}`
-      result = result.replace(new RegExp(placeholder, 'g'), value)
-    })
-
-    return result
-  },
-
   validateConfig(config) {
     const required = ['endpoint', 'apiKey', 'deploymentName']
     const missing = required.filter(field => !config[field])
@@ -71,8 +53,8 @@ const AzureOpenAIConnector = {
       error: '',
       metadata: {}
     }
-    const systemPrompt = this.buildSystemPrompt()
-    const userPrompt = this.buildUserPrompt(prompt, context)
+    const systemPrompt = ConnectorUtils.buildSystemPrompt(context)
+    const userPrompt = ConnectorUtils.buildUserPrompt(prompt, context, config.maxFlowContextChars)
     const endpoint = `${config.endpoint.replace(/\/$/, '')}/openai/deployments/${config.deploymentName}/chat/completions?api-version=${config.apiVersion}`
     const body = {
       messages: [
@@ -169,12 +151,13 @@ const AzureOpenAIConnector = {
       updatedNode: null,
       error: ''
     }
-    const systemPrompt = this.buildSystemPrompt('node')
-    const prompt = this.setPlaceholders(NODE_SEMANTIC_UPDATE_PROMPT, {
+    const systemPrompt = ConnectorUtils.buildSystemPrompt(currentConfig, 'node')
+    const prompt = ConnectorUtils.setPlaceholders(ConnectorUtils.NODE_SEMANTIC_UPDATE_PROMPT, {
       nodeType,
       nodeId,
       nodeName: nodeName || '',
       info,
+      CUSTOM_NODES: ConnectorUtils.CUSTOM_NODES,
       currentConfig: JSON.stringify(currentConfig, null, 2)
     })
 
@@ -246,8 +229,8 @@ const AzureOpenAIConnector = {
     }
 
     try {
-      const systemPrompt = this.buildSystemPrompt('node')
-      const prompt = this.setPlaceholders(DESCRIPTION_GENERATION_PROMPT, {
+      const systemPrompt = ConnectorUtils.buildSystemPrompt(currentConfig, 'node')
+      const prompt = ConnectorUtils.setPlaceholders(ConnectorUtils.DESCRIPTION_GENERATION_PROMPT, {
         nodeType,
         nodeId,
         nodeName: nodeName || '',
@@ -315,51 +298,14 @@ const AzureOpenAIConnector = {
     }
 
     return output
-  },
-
-  serializeFlowContext(nodes = []) {
-    const json = JSON.stringify(nodes, null, 2)
-    const config = this.getConfig()
-
-    if (json.length <= config.maxFlowContextChars) {
-      return json
-    }
-
-    // crude but effective: scale node count down to fit roughly in the limit
-    const ratio = config.maxFlowContextChars / json.length
-    const keepCount = Math.max(1, Math.floor(nodes.length * ratio))
-
-    const trimmed = nodes.slice(0, keepCount)
-
-    const trimmedJson = JSON.stringify(trimmed, null, 2)
-
-    // add a small notice so the model knows it's partial
-    return `${trimmedJson}\n\n/* NOTE: Flow truncated for context. Showing ${keepCount} of ${nodes.length} nodes. Preserve structure of unseen nodes. */`
-  },
-
-  buildUserPrompt(prompt, context) {
-    if (context && context.nodes && context.nodes.length > 0) {
-      const existingFlow = this.serializeFlowContext(context.nodes)
-
-      return this.setPlaceholders(USER_PROMPT_WITH_CONTEXT, {
-        prompt,
-        nodeCount: context.nodes.length,
-        existingFlow,
-        customNodes: context.customNodes
-      })
-    }
-
-    return this.setPlaceholders(USER_PROMPT_TEMPLATE, { prompt })
-  },
-
-  buildSystemPrompt(type = 'flow') {
-    return this.setPlaceholders(
-      type === 'flow'
-        ? SYSTEM_PROMPT_FLOW
-        : SYSTEM_PROMPT_NODE,
-      { SYSTEM_PROMPT }
-    )
   }
 }
+
+// expose ConnectorUtils helpers on the connector for tests/consumers
+Object.keys(ConnectorUtils).forEach(key => {
+  if (AzureOpenAIConnector[key] === undefined) {
+    AzureOpenAIConnector[key] = ConnectorUtils[key]
+  }
+})
 
 module.exports = AzureOpenAIConnector

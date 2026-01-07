@@ -2,14 +2,7 @@
 // Server-side implementation using axios
 const axios = require('axios')
 const getEnv = require('../config-loader')
-
-const USER_PROMPT_TEMPLATE = getEnv('USER_PROMPT_TEMPLATE')
-const USER_PROMPT_WITH_CONTEXT = getEnv('USER_PROMPT_WITH_CONTEXT')
-const NODE_SEMANTIC_UPDATE_PROMPT = getEnv('NODE_SEMANTIC_UPDATE_PROMPT')
-const DESCRIPTION_GENERATION_PROMPT = getEnv('DESCRIPTION_GENERATION_PROMPT')
-const SYSTEM_PROMPT = getEnv('SYSTEM_PROMPT')
-const SYSTEM_PROMPT_FLOW = getEnv('SYSTEM_PROMPT_FLOW')
-const SYSTEM_PROMPT_NODE = getEnv('SYSTEM_PROMPT_NODE')
+const ConnectorUtils = require('./connector-utils')
 
 const OpenAIConnector = {
   name: 'openai',
@@ -61,17 +54,6 @@ const OpenAIConnector = {
     }
   },
 
-  setPlaceholders(prompt, values) {
-    let result = prompt
-
-    Object.entries(values).forEach(([key, value]) => {
-      const placeholder = `{${key}}`
-      result = result.replace(new RegExp(placeholder, 'g'), value)
-    })
-
-    return result
-  },
-
   async generateFlow(prompt, context, configOverride) {
     const config = configOverride || this.getConfig()
     const output = {
@@ -81,8 +63,8 @@ const OpenAIConnector = {
       metadata: {}
     }
 
-    const systemPrompt = this.buildSystemPrompt()
-    const userPrompt = this.buildUserPrompt(prompt, context)
+    const systemPrompt = ConnectorUtils.buildSystemPrompt(context)
+    const userPrompt = ConnectorUtils.buildUserPrompt(prompt, context, config.maxFlowContextChars)
 
     const endpoint = 'https://api.openai.com/v1/chat/completions'
 
@@ -159,8 +141,8 @@ const OpenAIConnector = {
       updatedNode: null,
       error: ''
     }
-    const systemPrompt = this.buildSystemPrompt('node')
-    const prompt = this.setPlaceholders(NODE_SEMANTIC_UPDATE_PROMPT, {
+    const systemPrompt = ConnectorUtils.buildSystemPrompt(currentConfig, 'node')
+    const prompt = ConnectorUtils.setPlaceholders(ConnectorUtils.NODE_SEMANTIC_UPDATE_PROMPT, {
       nodeType,
       nodeId,
       nodeName: nodeName || '',
@@ -244,8 +226,8 @@ const OpenAIConnector = {
     }
 
     try {
-      const systemPrompt = this.buildSystemPrompt('node')
-      const prompt = this.setPlaceholders(DESCRIPTION_GENERATION_PROMPT, {
+      const systemPrompt = ConnectorUtils.buildSystemPrompt(currentConfig, 'node')
+      const prompt = ConnectorUtils.setPlaceholders(ConnectorUtils.DESCRIPTION_GENERATION_PROMPT, {
         nodeType,
         nodeId,
         nodeName: nodeName || '',
@@ -321,47 +303,21 @@ const OpenAIConnector = {
     }
 
     return output
-  },
-
-  buildSystemPrompt(type = 'flow') {
-    return this.setPlaceholders(
-      type === 'flow'
-        ? SYSTEM_PROMPT_FLOW
-        : SYSTEM_PROMPT_NODE,
-      { SYSTEM_PROMPT }
-    )
-  },
-
-  buildUserPrompt(prompt, context) {
-    if (context && context.nodes && context.nodes.length > 0) {
-      const existingFlow = this.serializeFlowContext(context.nodes)
-
-      return this.setPlaceholders(USER_PROMPT_WITH_CONTEXT, {
-        prompt,
-        nodeCount: context.nodes.length,
-        existingFlow,
-        customNodes: context.customNodes
-      })
-    }
-
-    return this.setPlaceholders(USER_PROMPT_TEMPLATE, { prompt })
-  },
-
-  serializeFlowContext(nodes = []) {
-    const json = JSON.stringify(nodes, null, 2)
-    const config = this.getConfig()
-
-    if (json.length <= config.maxFlowContextChars) {
-      return json
-    }
-
-    const ratio = config.maxFlowContextChars / json.length
-    const keepCount = Math.max(1, Math.floor(nodes.length * ratio))
-    const trimmed = nodes.slice(0, keepCount)
-    const trimmedJson = JSON.stringify(trimmed, null, 2)
-
-    return `${trimmedJson}\n\n/* NOTE: Flow truncated for context. Showing ${keepCount} of ${nodes.length} nodes. Preserve structure of unseen nodes. */`
   }
 }
 
+// expose ConnectorUtils helpers on the connector for tests/consumers
+Object.keys(ConnectorUtils).forEach(key => {
+  if (OpenAIConnector[key] === undefined) {
+    OpenAIConnector[key] = ConnectorUtils[key]
+  }
+})
+
 module.exports = OpenAIConnector
+
+// prefer connector-config-aware serializeFlowContext for truncation limits
+OpenAIConnector.serializeFlowContext = function (nodes = []) {
+  const config = this.getConfig()
+  const max = config && config.maxFlowContextChars ? config.maxFlowContextChars : undefined
+  return ConnectorUtils.serializeFlowContext(nodes, max)
+}

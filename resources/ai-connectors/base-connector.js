@@ -12,14 +12,9 @@
   - buildSystemPrompt(): Returns system prompt for AI
   - buildUserPrompt(prompt, context): Returns user prompt with context
 */
+const axios = require('axios')
 const getEnv = require('../config-loader')
-const {
-  SYSTEM_PROMPT,
-  USER_PROMPT_TEMPLATE,
-  USER_PROMPT_WITH_CONTEXT,
-  NODE_SEMANTIC_UPDATE_PROMPT,
-  DESCRIPTION_GENERATION_PROMPT
-} = require('../ai-prompts.json')
+const ConnectorUtils = require('./connector-utils')
 
 const BaseConnector = {
   name: 'base',

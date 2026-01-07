@@ -44,6 +44,7 @@ describe('AI connector helpers', () => {
     })
 
     test('buildUserPrompt injects context', () => {
+      // eslint-disable-next-line global-require
       const connector = require('../resources/ai-connectors/openai-connector-node')
       const prompt = connector.buildUserPrompt('do something', { nodes: [{ id: 'n1' }] })
       expect(prompt).toContain('"id": "n1"')
@@ -52,6 +53,7 @@ describe('AI connector helpers', () => {
 
   describe('Azure OpenAI connector', () => {
     test('validates required config and applies max tokens', () => {
+      // eslint-disable-next-line global-require
       const connector = require('../resources/ai-connectors/azure-openai-connector-node')
       const invalid = connector.validateConfig({ endpoint: '', apiKey: '', deploymentName: '' })
       expect(invalid.valid).toBe(false)
@@ -64,6 +66,7 @@ describe('AI connector helpers', () => {
 
   describe('Google connector', () => {
     test('sets placeholder values and maxOutputTokens', () => {
+      // eslint-disable-next-line global-require
       const connector = require('../resources/ai-connectors/google-connector-node')
       const rendered = connector.setPlaceholders('Hello {name}', { name: 'World' })
       expect(rendered).toBe('Hello World')
@@ -77,6 +80,7 @@ describe('AI connector helpers', () => {
 
   describe('Anthropic connector', () => {
     test('applies fallback max tokens and context serialization', () => {
+      // eslint-disable-next-line global-require
       const connector = require('../resources/ai-connectors/anthropic-connector-node')
       const body = {}
       connector.addTokens({}, body, 25)

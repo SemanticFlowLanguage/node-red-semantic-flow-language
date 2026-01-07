@@ -2,14 +2,7 @@
 // Server-side implementation using axios
 const axios = require('axios')
 const getEnv = require('../config-loader')
-
-const USER_PROMPT_TEMPLATE = getEnv('USER_PROMPT_TEMPLATE')
-const USER_PROMPT_WITH_CONTEXT = getEnv('USER_PROMPT_WITH_CONTEXT')
-const NODE_SEMANTIC_UPDATE_PROMPT = getEnv('NODE_SEMANTIC_UPDATE_PROMPT')
-const DESCRIPTION_GENERATION_PROMPT = getEnv('DESCRIPTION_GENERATION_PROMPT')
-const SYSTEM_PROMPT = getEnv('SYSTEM_PROMPT')
-const SYSTEM_PROMPT_FLOW = getEnv('SYSTEM_PROMPT_FLOW')
-const SYSTEM_PROMPT_NODE = getEnv('SYSTEM_PROMPT_NODE')
+const ConnectorUtils = require('./connector-utils')
 
 const AnthropicConnector = {
   name: 'anthropic',
@@ -38,17 +31,6 @@ const AnthropicConnector = {
     return { valid: true, errors: [] }
   },
 
-  setPlaceholders(prompt, values) {
-    let result = prompt
-
-    Object.entries(values).forEach(([key, value]) => {
-      const placeholder = `{${key}}`
-      result = result.replace(new RegExp(placeholder, 'g'), value)
-    })
-
-    return result
-  },
-
   addTokens(config, body, fallbackMax) {
     const tokenSetting = config.maxCompletionTokens || config.maxTokens || fallbackMax
 
@@ -66,8 +48,8 @@ const AnthropicConnector = {
       metadata: {}
     }
 
-    const systemPrompt = this.buildSystemPrompt()
-    const userPrompt = this.buildUserPrompt(prompt, context)
+    const systemPrompt = ConnectorUtils.buildSystemPrompt(context)
+    const userPrompt = ConnectorUtils.buildUserPrompt(prompt, context, config.maxFlowContextChars)
 
     const endpoint = 'https://api.anthropic.com/v1/messages'
 
@@ -222,8 +204,8 @@ const AnthropicConnector = {
     }
 
     try {
-      const systemPrompt = this.buildSystemPrompt('node')
-      const prompt = this.setPlaceholders(DESCRIPTION_GENERATION_PROMPT, {
+      const systemPrompt = ConnectorUtils.buildSystemPrompt(currentConfig, 'node')
+      const prompt = ConnectorUtils.setPlaceholders(ConnectorUtils.DESCRIPTION_GENERATION_PROMPT, {
         nodeType,
         nodeId,
         nodeName: nodeName || '',
@@ -292,47 +274,23 @@ const AnthropicConnector = {
     }
 
     return output
-  },
-
-  buildSystemPrompt(type = 'flow') {
-    return this.setPlaceholders(
-      type === 'flow'
-        ? SYSTEM_PROMPT_FLOW
-        : SYSTEM_PROMPT_NODE,
-      { SYSTEM_PROMPT }
-    )
-  },
-
-  buildUserPrompt(prompt, context) {
-    if (context && context.nodes && context.nodes.length > 0) {
-      const existingFlow = this.serializeFlowContext(context.nodes)
-
-      return this.setPlaceholders(USER_PROMPT_WITH_CONTEXT, {
-        prompt,
-        nodeCount: context.nodes.length,
-        existingFlow,
-        customNodes: context.customNodes
-      })
-    }
-
-    return this.setPlaceholders(USER_PROMPT_TEMPLATE, { prompt })
-  },
-
-  serializeFlowContext(nodes = []) {
-    const json = JSON.stringify(nodes, null, 2)
-    const config = this.getConfig()
-
-    if (json.length <= config.maxFlowContextChars) {
-      return json
-    }
-
-    const ratio = config.maxFlowContextChars / json.length
-    const keepCount = Math.max(1, Math.floor(nodes.length * ratio))
-    const trimmed = nodes.slice(0, keepCount)
-    const trimmedJson = JSON.stringify(trimmed, null, 2)
-
-    return `${trimmedJson}\n\n/* NOTE: Flow truncated for context. Showing ${keepCount} of ${nodes.length} nodes. Preserve structure of unseen nodes. */`
   }
 }
 
+// expose ConnectorUtils helpers on the connector for tests/consumers
+// preserve connector-specific serializeFlowContext if present
+// attach ConnectorUtils helpers when missing (include serializeFlowContext)
+Object.keys(ConnectorUtils).forEach(key => {
+  if (AnthropicConnector[key] === undefined) {
+    AnthropicConnector[key] = ConnectorUtils[key]
+  }
+})
+
 module.exports = AnthropicConnector
+
+// prefer connector-config-aware serializeFlowContext so tests respect env override
+AnthropicConnector.serializeFlowContext = function (nodes = []) {
+  const config = this.getConfig()
+  const max = config && config.maxFlowContextChars ? Number(config.maxFlowContextChars) : undefined
+  return ConnectorUtils.serializeFlowContext(nodes, max)
+}

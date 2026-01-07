@@ -371,7 +371,9 @@
         try { return localStorage.getItem(key) } catch { return null }
       },
       set(key, val) {
-        try { localStorage.setItem(key, val) } catch {}
+        try { localStorage.setItem(key, val) } catch {
+          // Ignore
+        }
       }
     }
 

@@ -2,14 +2,7 @@
 // Server-side implementation using axios
 const axios = require('axios')
 const getEnv = require('../config-loader')
-
-const USER_PROMPT_TEMPLATE = getEnv('USER_PROMPT_TEMPLATE')
-const USER_PROMPT_WITH_CONTEXT = getEnv('USER_PROMPT_WITH_CONTEXT')
-const NODE_SEMANTIC_UPDATE_PROMPT = getEnv('NODE_SEMANTIC_UPDATE_PROMPT')
-const DESCRIPTION_GENERATION_PROMPT = getEnv('DESCRIPTION_GENERATION_PROMPT')
-const SYSTEM_PROMPT = getEnv('SYSTEM_PROMPT')
-const SYSTEM_PROMPT_FLOW = getEnv('SYSTEM_PROMPT_FLOW')
-const SYSTEM_PROMPT_NODE = getEnv('SYSTEM_PROMPT_NODE')
+const ConnectorUtils = require('./connector-utils')
 
 const GoogleConnector = {
   name: 'google',
@@ -38,17 +31,6 @@ const GoogleConnector = {
     return { valid: true, errors: [] }
   },
 
-  setPlaceholders(prompt, values) {
-    let result = prompt
-
-    Object.entries(values).forEach(([key, value]) => {
-      const placeholder = `{${key}}`
-      result = result.replace(new RegExp(placeholder, 'g'), value)
-    })
-
-    return result
-  },
-
   addTokens(config, generationConfig) {
     const tokenSetting = config.maxCompletionTokens || config.maxTokens
 
@@ -66,8 +48,8 @@ const GoogleConnector = {
       metadata: {}
     }
 
-    const systemPrompt = this.buildSystemPrompt()
-    const userPrompt = this.buildUserPrompt(prompt, context)
+    const systemPrompt = ConnectorUtils.buildSystemPrompt(context)
+    const userPrompt = ConnectorUtils.buildUserPrompt(prompt, context, config.maxFlowContextChars)
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.apiKey}`
 
@@ -341,5 +323,14 @@ const GoogleConnector = {
     return `${trimmedJson}\n\n/* NOTE: Flow truncated for context. Showing ${keepCount} of ${nodes.length} nodes. Preserve structure of unseen nodes. */`
   }
 }
+
+// expose ConnectorUtils helpers on the connector for tests/consumers
+// but keep connector-specific serializeFlowContext
+Object.keys(ConnectorUtils).forEach(key => {
+  if (key === 'serializeFlowContext') return
+  if (GoogleConnector[key] === undefined) {
+    GoogleConnector[key] = ConnectorUtils[key]
+  }
+})
 
 module.exports = GoogleConnector
