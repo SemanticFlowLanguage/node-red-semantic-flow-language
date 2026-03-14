@@ -7,7 +7,7 @@
 
 This plugin extends Node-RED with **Semantic Flow Language (SFL)** features — enabling **AI-assisted flow creation**, **semantic sync between intent and logic**, and **inline editable tooltips** for clarity and transparency.
 
-For the full concept, specification, and philosophy, visit the main project: [Semantic Flow Language Repository](https://github.com/SemanticFlowLanguage/semantic-flow-language))
+For the full concept, specification, and philosophy, visit the main project: [Semantic Flow Language Repository](https://github.com/SemanticFlowLanguage/semantic-flow-language)
 
 ## Features
 
@@ -28,7 +28,7 @@ For the full concept, specification, and philosophy, visit the main project: [Se
 - **Native Integration**   
   - Uses Node-RED event system (`node:added`, `node:changed`, `deploy`)  
   - No server patching required   
-  - Works with all approved nodes from `stack.js`
+  - Works with Node-RED approved nodes
 
 ## Visual Indicators
 
@@ -50,7 +50,7 @@ pnpm install
 
 ### Production
 ```bash
-pnpm add git+https://github.com/node-red-semantic-flow-language/node-red-semantic-flow-language.git
+pnpm add node-red-semantic-flow-language
 ```
 
 ## Configuration
@@ -66,7 +66,7 @@ Any use of SFL with these systems should be considered **experimental** and may 
 
 1. **Copy environment template**:
 ```bash
-cp node_modules/node-red-semantic-flow-language/default.env ~/.node-red/.env
+cp node_modules/node-red-semantic-flow-language/.env.example ~/.node-red/.env
 ```
 
 2. **Edit `~/.node-red/.env`** with your AI provider credentials:
@@ -147,12 +147,12 @@ module.exports = {
 ### Development time Flow Builder Sidebar
 1. Click the **🪄Magic Wand** icon.  
 2. Describe your flow or logic in natural language.  
-3. AJ generates and inserts the corresponding flow JSON.
+3. AI generates and inserts the corresponding flow JSON.
 
 ### Tooltip Editing
 1. Hover over a node to view its description.  
 2. Click to edit inline.  
-3. Click the overlay —Save” button or outside the tooltip to commit.  
+3. Click the overlay "Save” button or outside the tooltip to commit.  
 4. The node automatically re-syncs.
 
 ## About Semantic Flow Language (SFL)
@@ -160,7 +160,7 @@ module.exports = {
 SFL is a **Semantic Execution Model** that represents logic as a **bidirectionally synchronized meaning graph** — permitting human intent, AI generation, and executable code to remain aligned.  
 Node-RED serves as the first working implementation of this model.
 
-> Learn more at the *(Semantic Flow Language repository**(https://github.com/SemanticFlowLanguage/semantic-flow-language).
+> Learn more in the [Semantic Flow Language repository](https://github.com/SemanticFlowLanguage/semantic-flow-language).
 
 ## Related Documentation
 
