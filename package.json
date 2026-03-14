@@ -153,7 +153,10 @@
   "peerDependencies": {
     "node-red": ">=3.0.0"
   },
-  "repository": "https://github.com/SemanticFlowLanguage/node-red-semantic-flow-language.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SemanticFlowLanguage/node-red-semantic-flow-language.git"
+  },
   "devDependencies": {
     "eslint": "^8.57.1",
     "eslint-config-airbnb-base": "^15.0.0",
@@ -173,7 +176,7 @@
   },
   "apuri": {
     "Name": "Node-RED Semantic Flow Language",
-    "shortname": "[name",
+    "shortname": "[name]",
     "App_Type": "Module",
     "Description": "[description]",
     "Maintainer": "[contributors]",
