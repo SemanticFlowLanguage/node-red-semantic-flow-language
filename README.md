@@ -164,9 +164,9 @@ Node-RED serves as the first working implementation of this model.
 
 ## Related Documentation
 
-- [Concept](hhttps://github.com/SemanticFlowLanguage/semantic-flow-language/blob/main/docs/concept.md)
-- [Philosophy](https://github.com/SemanticFlowLanguage/semantic-flow-language/blob/main/philosophy.md)
-- [Specification](https://github.com/SemanticFlowLanguage/semantic-flow-language/blob/main/specification.md)
+- [Concept](https://github.com/SemanticFlowLanguage/semantic-flow-language/blob/main/docs/concept.md)
+- [Philosophy](https://github.com/SemanticFlowLanguage/semantic-flow-language/blob/main/docs/philosophy.md)
+- [Specification](https://github.com/SemanticFlowLanguage/semantic-flow-language/blob/main/docs/specification.md)
  
 ### Contact
 
