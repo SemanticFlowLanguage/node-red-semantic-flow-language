@@ -4,9 +4,6 @@
 <!-- 2. Tippy v6 UMD build -->
 <script src="https://unpkg.com/tippy.js@6.3.7/dist/tippy.umd.min.js"></script>
 
-<!-- Axios for client-side HTTP requests -->
-<script src="https://unpkg.com/axios@1.6.8/dist/axios.min.js"></script>
-
 <!-- 3. Tippy base styles + theme -->
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/dist/tippy.css">
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/themes/light.css">
@@ -83,7 +80,12 @@
       const url = adminRoot ? `${adminRoot}/ai/custom-nodes` : '/ai/custom-nodes'
 
       try {
-        await axios.post(url, { nodes })
+        await $.ajax({
+          url,
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({ nodes })
+        })
       } catch (err) {
         // Best-effort; no UI impact
         console.warn('[semantic-flow-language] Failed to send custom nodes', err)

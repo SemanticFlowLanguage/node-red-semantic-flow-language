@@ -173,6 +173,123 @@
   }
 }
 
+/* ========== Auto-Verify toggle + correction log ========== */
+
+#ai-prompt-panel .ai-auto-verify-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--red-ui-secondary-text-color, #666);
+  cursor: pointer;
+  user-select: none;
+  margin: 0;
+}
+
+#ai-prompt-panel .ai-auto-verify-checkbox {
+  margin: 0;
+}
+
+#ai-prompt-panel .ai-auto-verify-label {
+  font-weight: 500;
+}
+
+#ai-prompt-panel .ai-prompt-response {
+  /* Override fixed max-height when the verify log is rendered so attempts stay visible */
+  max-height: 260px;
+}
+
+#ai-prompt-panel .ai-verify-header {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--red-ui-primary-text-color, #222);
+  margin-bottom: 6px;
+}
+
+#ai-prompt-panel .ai-verify-attempts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#ai-prompt-panel .ai-verify-attempt {
+  border: 1px solid var(--red-ui-form-input-border-color, #ccc);
+  border-left: 3px solid var(--red-ui-secondary-text-color, #888);
+  border-radius: 3px;
+  padding: 6px 8px;
+  font-family: var(--red-ui-monospace-font, monospace);
+  font-size: 12px;
+  line-height: 1.4;
+  background: var(--red-ui-form-background, #fff);
+}
+
+#ai-prompt-panel .ai-verify-attempt-num {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+#ai-prompt-panel .ai-verify-error {
+  color: var(--red-ui-state-error, #c00);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+#ai-prompt-panel .ai-verify-change {
+  color: var(--red-ui-secondary-text-color, #555);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+#ai-prompt-panel .ai-verify-outcome {
+  margin-top: 2px;
+}
+
+#ai-prompt-panel .ai-verify-outcome-success {
+  color: #2e7d32;
+  border-left-color: #2e7d32;
+}
+
+#ai-prompt-panel .ai-verify-attempt:has(.ai-verify-outcome-success) {
+  border-left-color: #2e7d32;
+}
+
+#ai-prompt-panel .ai-verify-attempt:has(.ai-verify-outcome-invalid),
+#ai-prompt-panel .ai-verify-attempt:has(.ai-verify-outcome-runtime-error) {
+  border-left-color: var(--red-ui-state-error, #c00);
+}
+
+#ai-prompt-panel .ai-verify-attempt:has(.ai-verify-outcome-converged) {
+  border-left-color: #f57c00;
+}
+
+#ai-prompt-panel .ai-verify-running,
+#ai-prompt-panel .ai-verify-restart {
+  font-family: var(--red-ui-monospace-font, monospace);
+  font-size: 11px;
+  text-align: center;
+  color: var(--red-ui-secondary-text-color, #666);
+  letter-spacing: 0.5px;
+  padding: 6px 0;
+  margin-top: 4px;
+  border-top: 1px dashed var(--red-ui-form-input-border-color, #ccc);
+  border-bottom: 1px dashed var(--red-ui-form-input-border-color, #ccc);
+}
+
+#ai-prompt-panel .ai-verify-terminal {
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 6px;
+  padding: 4px 0;
+}
+
+#ai-prompt-panel .ai-verify-terminal-success {
+  color: #2e7d32;
+}
+
+#ai-prompt-panel .ai-verify-terminal-unresolved {
+  color: var(--red-ui-state-error, #c00);
+}
+
 /* Overlay for node tooltip edit mode - moved from inline JS styles */
 #node-tooltip-overlay,
 .node-tooltip-overlay {

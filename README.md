@@ -14,6 +14,9 @@ For the full concept, specification, and philosophy, visit the main project: [Se
 - **Natural-Language Flow Builder**
   Describe complete flows in plain English. For example: _"Create an app that pulls today's Zendesk tickets at 7 AM and emails a report."_ AI translates your intent into valid Node-RED JSON automatically.
 
+- **Auto-Verify with AI Self-Correction**
+  When the AI generates or updates a flow, the plugin validates it (schema, node types, required props, wire integrity, config-node refs) and — when explicitly enabled — deploys it to a non-production runtime to watch for errors. Any validation failure or runtime error is fed back to the AI as a correction diff for the next attempt. The loop stops on success, on the configured attempt ceiling, or when the same error signature recurs. See [Auto-Verify](#auto-verify) for configuration.
+
 - **Inline Node Tooltips**
   - Hover to view node descriptions
   - Click to edit inline (content-editable)
@@ -98,6 +101,12 @@ AI_SEARCH_ENDPOINT="https://your-search.search.windows.net/"
 AI_SEARCH_API_KEY="your-search-key"
 AI_SEARCH_INDEX="your-index-name"
 AI_EMBEDDING_DEPLOYMENT="your-embedding-deployment"
+
+# Auto-Verify (AI tab switch defaults and correction-loop bounds)
+SFL_AUTO_VERIFY_DEFAULT="true"
+SFL_AUTO_VERIFY_MAX_ATTEMPTS="3"
+SFL_AUTO_VERIFY_MAX_RESTARTS="3"
+SFL_AUTO_VERIFY_TIMEOUT_MS="30000"
 ```
 
 3. **Restart Node-RED**:
@@ -138,9 +147,85 @@ module.exports = {
   AI_SEARCH_ENDPOINT: "",           // Optional override for Azure AI Search
   AI_SEARCH_API_KEY: "",            // Optional override for Azure AI Search
   AI_SEARCH_INDEX: "",              // Optional override for Azure AI Search
-  AI_EMBEDDING_DEPLOYMENT: ""       // Optional override for Azure AI Search
+  AI_EMBEDDING_DEPLOYMENT: "",      // Optional override for Azure AI Search
+
+  // Auto-Verify (see the Auto-Verify section below for behavior)
+  SFL_AUTO_VERIFY_DEFAULT: true,    // Default state of the AI tab auto-verify switch
+  SFL_AUTO_VERIFY_MAX_ATTEMPTS: 3,  // Correction attempts before regenerating from scratch
+  SFL_AUTO_VERIFY_MAX_RESTARTS: 3,  // Fresh regenerations to try after inner attempts fail
+  SFL_AUTO_VERIFY_TIMEOUT_MS: 30000,// Per-attempt deploy/observation window and loop upper bound
+
+  // Audit (see the Audit Trail section below). Default empty = silent.
+  SFL_AUDIT_DESTINATION: "",        // "" | "red.log" | "http(s)://..." | filepath (JSONL)
+  SFL_AUDIT_HEADERS: {}             // URL mode only: HTTP headers (key-value object)
 }
 ```
+
+### Auto-Verify
+
+When the AI builds or updates a flow, auto-verify can validate the result, optionally deploy it to a non-production runtime, watch for errors, and feed any failure back to the AI as a correction diff for the next attempt. The correction log is rendered in the existing AI tab output panel; Node-RED's debug panel remains the canonical record of full error fidelity.
+
+**Toggle.** A switch labeled `auto-verify` sits above the response panel in the AI Builder sidebar. Its default state comes from `SFL_AUTO_VERIFY_DEFAULT`.
+
+**Settings** (configurable in `.env` or under the plugin block in `settings.js`):
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `SFL_AUTO_VERIFY_DEFAULT` | boolean | `true` | Default state of the AI tab switch. |
+| `SFL_AUTO_VERIFY_MAX_ATTEMPTS` | integer | `3` | Inner correction attempts within one restart. |
+| `SFL_AUTO_VERIFY_MAX_RESTARTS` | integer | `3` | After exhausting attempts, regenerate the flow from scratch (sends the original prompt with no context) and run auto-verify again. Worst-case AI calls = `MAX_ATTEMPTS * MAX_RESTARTS`. |
+| `SFL_AUTO_VERIFY_TIMEOUT_MS` | integer | `30000` | Per-attempt deploy/observe window and loop upper bound. |
+
+**Auto-deploy gate.** Turning on the auto-verify switch is the user's explicit consent to deploy, so the only remaining guard is the environment:
+
+- `process.env.NODE_ENV` must be **set** and **not** `"production"`. Blank or undefined fails closed — an unknown environment must not deploy.
+
+If the environment check fails, auto-verify runs **validation-only** (schema, node-type existence, required props, wire integrity, config-node refs) and a clean validation counts as a successful attempt.
+
+**Two-phase self-correction loop.** Each attempt runs two phases in order:
+
+1. **Syntax phase** — uses Node-RED's own per-node validator (the same one that puts the red error triangle on invalid nodes in the editor). Covers required fields, typedInput types, JSONata expression syntax, wire integrity, unknown node types, and unresolved config-node references. If syntax errors are found, the attempt ends here and the next attempt starts again with a syntax check on the AI's correction.
+2. **Runtime phase** — only entered when the syntax phase is clean. Deploys the flow (if the auto-deploy gate allows) and observes the Node-RED debug stream for the timeout window. Any runtime errors observed end the attempt.
+
+On either phase failure the plugin:
+- captures the error signature (namespaced `syntax:` or `runtime:`),
+- computes the correction diff between the previous and current attempt,
+- sends the diff + error + phase to the AI for the next attempt.
+
+**Restarts.** If the inner attempts loop hits `SFL_AUTO_VERIFY_MAX_ATTEMPTS` without success (or stops on signature repeat), the plugin **regenerates the flow from scratch** by re-sending the original prompt to the AI with no context. It then runs the inner loop again on the fresh flow. This repeats up to `SFL_AUTO_VERIFY_MAX_RESTARTS` times.
+
+The whole loop stops on: clean syntax + clean runtime, the `SFL_AUTO_VERIFY_MAX_RESTARTS × SFL_AUTO_VERIFY_MAX_ATTEMPTS` ceiling, or repetition of the same error signature within a restart (early convergence stop for that restart). Both phases combined count as one attempt against `SFL_AUTO_VERIFY_MAX_ATTEMPTS`. On stop, the flow is left in its current state in the editor — there is no rollback or stash.
+
+On terminal failure (all restarts exhausted), the AI tab output panel shows:
+
+> Couldn't resolve — try rephrasing prompt and running again. If that also fails, escalate to dev.
+
+### Audit Trail
+
+Plugin activity (prompt receipt, each auto-verify attempt, and the final auto-verify outcome) can be emitted as structured JSON events to a single configurable destination. Default behavior is **silent** — nothing is emitted unless `SFL_AUDIT_DESTINATION` is set. Emission is fire-and-forget; it never blocks the user-facing operation.
+
+**Destination is resolved from `SFL_AUDIT_DESTINATION` in this order:**
+
+| Value | Behavior |
+|---|---|
+| empty / unset | silent (default) |
+| `"red.log"` | emit via `RED.log.info()` with the event as a JSON string |
+| starts with `http://` or `https://` | POST JSON payload to that URL |
+| anything else | treated as a file path; append as JSONL (one event per line). Relative paths resolve against the Node-RED user directory. |
+
+For URL mode, set `SFL_AUDIT_HEADERS` (object) in `settings.js` to attach auth headers to every POST. TLS is verified by default. Transient failures (timeout, 5xx) are retried once with backoff; pending requests are capped at 100 to prevent backpressure, and excess events are dropped with a `RED.log.warn`.
+
+File mode is append-only, no rotation in v1 — manage with `logrotate` or equivalent.
+
+**Common envelope on every event:** `timestamp` (ISO 8601 with timezone), `event_type`, `user` (best-available: email → username/UPN → id → null), `user_source` (`email` / `username` / `id` / `none`), `prompt_id` (UUID generated when the prompt is received, referenced by all subsequent events). The server stamps `user`/`user_source` fresh on each event write.
+
+**Event types:**
+
+- `prompt_received` — emitted when an AI endpoint accepts a prompt. Extra fields: `prompt_text`, `ai_mode` (`flow_generation` / `node_update` / `description_generation`).
+- `auto_verify_attempt` — emitted once per attempt outcome. Extra fields: `attempt_number`, `mode` (`syntax` / `runtime`), `error_signature` (normalized — node ids/UUIDs/timestamps/numbers stripped so equivalent errors hash identically), `error_message` (raw), `correction_summary`, `outcome` (`resolved` / `unresolved` / `same_signature_repeated`).
+- `auto_verify_complete` — emitted once when the loop terminates. Extra fields: `outcome` (`resolved` / `ceiling_hit` / `signature_repeated` / `unresolved_after_resample`), `total_attempts`, `resample_triggered` (boolean), `final_flow_id` (target tab id), `duration_ms`.
+
+**Correction log format.** The AI tab output panel shows the attempt count prominently at the top (for example: `Resolved in 2 attempts` or `Stopped after 3 attempts — unresolved`). Each attempt is rendered as a discrete entry labeled `Attempt N · Syntax` or `Attempt N · Runtime` to indicate which phase determined the outcome. The entry contains the attempt number + phase, a one-line error summary, what the AI changed in response, and the phase outcome.
 
 ## Usage
 
