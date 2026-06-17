@@ -60,3 +60,13 @@ yarn.lock
 pnpm-lock.yaml
 husky/
 cSpell.json
+
+# Internal contributor docs — not for npm consumers
+CLAUDE.md
+.github/
+scaffolding/
+
+# Stray test artifacts the test/ rule above doesn't catch
+test-results.xml
+test.html
+test.txt
