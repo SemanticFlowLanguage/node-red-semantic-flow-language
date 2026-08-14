@@ -238,6 +238,48 @@
     window.nodeFunctionalState[node.id] = extractFunctionalProperties(node)
   }
 
+  const adminPath = path => {
+    const adminRoot = (RED?.settings?.httpAdminRoot || '').replace(/\/$/, '')
+
+    return adminRoot ? `${adminRoot}${path}` : path
+  }
+
+  // Lightweight axios-shaped wrapper over jQuery's $.ajax (which Node-RED loads).
+  // axios itself isn't loaded in the editor — see the same fix in ai-prompt-sidebar.js.
+  const httpClient = {
+    post(path, body, opts = {}) {
+      const config = {
+        url: adminPath(path),
+        method: 'POST',
+        dataType: 'json',
+        contentType: 'application/json',
+        data: JSON.stringify(body)
+      }
+
+      if (opts.timeout) {
+        config.timeout = opts.timeout
+      }
+
+      return new Promise((resolve, reject) => {
+        $.ajax(config)
+          .done(data => resolve({ data }))
+          .fail((xhr, status, errText) => {
+            const message = errText || status || 'request failed'
+            const wrapped = new Error(message)
+
+            wrapped.response = {
+              status: xhr.status,
+              statusText: xhr.statusText || '',
+              data: xhr.responseJSON || xhr.responseText || '',
+              headers: { 'retry-after': xhr.getResponseHeader('Retry-After') }
+            }
+
+            reject(wrapped)
+          })
+      })
+    }
+  }
+
   async function with429Retry(nodeId, requestFn) {
     let attempt = 0
 
@@ -276,12 +318,7 @@
   }
 
   async function resyncNodeWithAI(node, direction = 'info-to-logic') {
-    const httpClient = window.axios
     const currentConfig = extractNodeConfig(node)
-
-    if (!httpClient) {
-      throw new Error('Axios client not available in editor')
-    }
 
     // Mark node as syncing (yellow dot)
     setNodeSyncStatus(node.id, true)
