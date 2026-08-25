@@ -153,6 +153,7 @@ const AzureOpenAIConnector = {
     }
     const systemPrompt = ConnectorUtils.buildSystemPrompt(currentConfig, 'node')
     const prompt = ConnectorUtils.setPlaceholders(ConnectorUtils.NODE_SEMANTIC_UPDATE_PROMPT, {
+      customNodes: JSON.stringify((currentConfig && currentConfig.customNodes) || []),
       nodeType,
       nodeId,
       nodeName: nodeName || '',

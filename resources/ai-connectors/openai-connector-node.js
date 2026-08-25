@@ -143,6 +143,8 @@ const OpenAIConnector = {
     }
     const systemPrompt = ConnectorUtils.buildSystemPrompt(currentConfig, 'node')
     const prompt = ConnectorUtils.setPlaceholders(ConnectorUtils.NODE_SEMANTIC_UPDATE_PROMPT, {
+      CUSTOM_NODES: ConnectorUtils.CUSTOM_NODES,
+      customNodes: JSON.stringify((currentConfig && currentConfig.customNodes) || []),
       nodeType,
       nodeId,
       nodeName: nodeName || '',

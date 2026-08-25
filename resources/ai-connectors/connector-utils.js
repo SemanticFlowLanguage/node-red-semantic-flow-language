@@ -24,11 +24,30 @@ const ConnectorUtils = {
 
   setPlaceholders(prompt, values) {
     let result = prompt
+    const undeclared = []
 
+    // NOTE: split/join, not String.replace — replace() interprets $$, $&, $` and
+    // $1 in the *replacement*, which silently corrupts node configs containing
+    // JSONata (`$$.payload`) or currency templates. Also avoids building an
+    // unescaped RegExp from the key.
     Object.entries(values).forEach(([key, value]) => {
       const placeholder = `{${key}}`
-      result = result.replace(new RegExp(placeholder, 'g'), value)
+
+      if (!result.includes(placeholder)) {
+        undeclared.push(key)
+
+        return
+      }
+
+      result = result.split(placeholder).join(String(value))
     })
+
+    const unfilled = [...new Set(result.match(/\{[A-Za-z_][A-Za-z0-9_]*\}/g) || [])]
+
+    if (undeclared.length || unfilled.length) {
+      // Warn, don't throw: prompts may legitimately contain {word} in examples.
+      console.warn(`[semantic-flow-language] prompt placeholder mismatch — passed but not in template: [${undeclared.join(', ')}]; in template but never filled: [${unfilled.join(', ')}]`)
+    }
 
     return result
   },

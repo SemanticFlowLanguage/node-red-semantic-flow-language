@@ -319,6 +319,9 @@
 
   async function resyncNodeWithAI(node, direction = 'info-to-logic') {
     const currentConfig = extractNodeConfig(node)
+    // The description the user just authored is the INPUT for info-to-logic.
+    // Capture it so a stale/echoed info in the AI response can't revert it.
+    const authoredInfo = node.info
 
     // Mark node as syncing (yellow dot)
     setNodeSyncStatus(node.id, true)
@@ -342,6 +345,9 @@
           // Update node with AI-generated config
           Object.assign(node, data.updatedNode)
 
+          // Never let the model overwrite the description the user just typed.
+          node.info = authoredInfo
+
           // Update registry with new synced info
           window.semanticNodeRegistry[node.id] = {
             info: node.info,
@@ -353,6 +359,12 @@
           // Force UI updates
           RED.nodes.dirty(true)
           node.dirty = true
+          node.changed = true
+
+          // Trigger Node-RED's internal update so the canvas label and the
+          // modified marker repaint immediately (logic-to-info already does this).
+          RED.events.emit('nodes:change', node)
+
           RED.view.redraw(true)
 
           // Update tooltip content

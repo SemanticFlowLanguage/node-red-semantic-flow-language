@@ -126,7 +126,9 @@ const AnthropicConnector = {
     }
 
     const systemPrompt = this.buildSystemPrompt('node')
-    const prompt = this.setPlaceholders(NODE_SEMANTIC_UPDATE_PROMPT, {
+    const prompt = ConnectorUtils.setPlaceholders(ConnectorUtils.NODE_SEMANTIC_UPDATE_PROMPT, {
+      CUSTOM_NODES: ConnectorUtils.CUSTOM_NODES,
+      customNodes: JSON.stringify((currentConfig && currentConfig.customNodes) || []),
       nodeType,
       nodeId,
       nodeName: nodeName || '',

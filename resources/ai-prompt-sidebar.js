@@ -1348,10 +1348,16 @@
       }
     }).catch(err => {
       const errorDetail = err.response?.data?.error
+      // status 0 = no response reached the browser at all (server restarted or
+      // was redeployed mid-request, proxy dropped the connection, or the page was
+      // reloaded). That is a transport failure, not a configuration problem.
+      const connectionLost = err.response && err.response.status === 0
       const statusText = err.response
         ? `HTTP ${err.response.status}: ${err.response.statusText || 'Request failed'}`
         : err.message
-      const errorMsg = `Error: ${errorDetail || statusText}\n\nPlease check:\n- AI connector is configured\n- API keys are valid\n- Network connection is stable`
+      const errorMsg = connectionLost
+        ? 'Error: Connection lost before the server responded.\n\nThe server was most likely restarted or redeployed while the flow was being generated. Nothing is misconfigured — just try again.'
+        : `Error: ${errorDetail || statusText}\n\nPlease check:\n- AI connector is configured\n- API keys are valid\n- Network connection is stable`
 
       responseArea.append(errorMsg).show()
       RED.notify('Failed to build flow', 'error')

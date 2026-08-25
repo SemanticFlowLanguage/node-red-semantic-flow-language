@@ -69,11 +69,48 @@ module.exports = async function (RED) {
     }
   }
 
-  try {
-    // eslint-disable-next-line import/no-dynamic-require, global-require
-    connector = require(`./resources/ai-connectors/${connectorName}-connector-node`)
-  } catch (e) {
-    RED.log.error(`[semantic-flow-language] Failed to load connector "${connectorName}": ${e.message}`)
+  // Resolution order:
+  //   1. AI_CONNECTOR_MODULE  — an explicitly named npm package (preferred for
+  //      external adapters; no need to copy files into this package)
+  //   2. built-in connector shipped in ./resources/ai-connectors
+  //   3. bare "<name>-connector" package on the require path
+  const connectorModule = getEnv('AI_CONNECTOR_MODULE', '')
+  const attempts = []
+
+  const tryLoad = spec => {
+    if (connector || !spec) {
+      return
+    }
+
+    try {
+      // Resolve bare package names from the Node-RED user dir too, so adapters
+      // installed alongside the runtime are found regardless of where this
+      // package physically lives (pnpm isolated layouts, global installs).
+      const searchPaths = [__dirname]
+
+      if (RED.settings && RED.settings.userDir) {
+        searchPaths.push(RED.settings.userDir)
+      }
+
+      searchPaths.push(process.cwd())
+
+      const resolved = spec.startsWith('.')
+        ? require.resolve(spec)
+        : require.resolve(spec, { paths: searchPaths })
+
+      // eslint-disable-next-line import/no-dynamic-require, global-require
+      connector = require(resolved)
+    } catch (e) {
+      attempts.push(`${spec}: ${e.message.split('\n')[0]}`)
+    }
+  }
+
+  tryLoad(connectorModule)
+  tryLoad(`./resources/ai-connectors/${connectorName}-connector-node`)
+  tryLoad(`${connectorName}-connector`)
+
+  if (!connector) {
+    RED.log.error(`[semantic-flow-language] Failed to load connector "${connectorName}". AI endpoints will return 503. Tried -> ${attempts.join(' | ')}`)
   }
 
   const packageInfo = async name => {
@@ -143,6 +180,12 @@ module.exports = async function (RED) {
       }
 
       // Validate AI configuration
+      if (!connector) {
+        output.error = `AI connector "${connectorName}" failed to load — see Node-RED startup log`
+
+        return res.status(503).json(output)
+      }
+
       const aiConfig = connector.getConfig()
       const validation = connector.validateConfig(aiConfig)
 
@@ -207,6 +250,12 @@ module.exports = async function (RED) {
       }
 
       // Validate AI configuration
+      if (!connector) {
+        output.error = `AI connector "${connectorName}" failed to load — see Node-RED startup log`
+
+        return res.status(503).json(output)
+      }
+
       const aiConfig = connector.getConfig()
       const validation = connector.validateConfig(aiConfig)
 
@@ -270,6 +319,12 @@ module.exports = async function (RED) {
       }
 
       // Validate AI configuration
+      if (!connector) {
+        output.error = `AI connector "${connectorName}" failed to load — see Node-RED startup log`
+
+        return res.status(503).json(output)
+      }
+
       const aiConfig = connector.getConfig()
       const validation = connector.validateConfig(aiConfig)
 
@@ -340,6 +395,12 @@ module.exports = async function (RED) {
         output.error = 'errorSummary or correctionDiff is required'
 
         return res.status(400).json(output)
+      }
+
+      if (!connector) {
+        output.error = `AI connector "${connectorName}" failed to load — see Node-RED startup log`
+
+        return res.status(503).json(output)
       }
 
       const aiConfig = connector.getConfig()
